@@ -11,28 +11,30 @@
                 <ResourceDictionary Source="Themes/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
             <converters:StatusToneToBrushConverter x:Key="StatusToneToBrushConverter" />
 
             <DataTemplate DataType="{x:Type viewModels:HomeViewModel}">
                 <views:HomeView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type viewModels:FirstTimeSetupViewModel}">
-                <views:InfoPageView />
+                <views:FirstTimeSetupView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type viewModels:DevicesViewModel}">
-                <views:InfoPageView />
+                <views:DevicesView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type viewModels:GamesViewModel}">
-                <views:InfoPageView />
+                <views:GamesView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type viewModels:GpsCaptureViewModel}">
-                <views:InfoPageView />
+                <views:GpsCaptureView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type viewModels:SettingsViewModel}">
-                <views:InfoPageView />
+                <views:SettingsView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type viewModels:DiagnosticsViewModel}">
-                <views:InfoPageView />
+                <views:DiagnosticsView />
             </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TruckNav.Connector.App.Services;
 using TruckNav.Connector.App.ViewModels;
 using TruckNav.Connector.Capture;
 using TruckNav.Connector.Networking.Protocol;
@@ -29,6 +30,15 @@ public partial class App : Application
             {
                 services.AddTruckNavCapture();
                 services.AddTruckNavNetworking();
+
+                services.AddSingleton<INavigationService, NavigationService>();
+                services.AddSingleton<IConnectorUiStateStore, FileConnectorUiStateStore>();
+                services.AddSingleton<ILocalConnectorProfileService, LocalConnectorProfileService>();
+                services.AddSingleton<LanPairingService>();
+                services.AddSingleton<ILanPairingService>(serviceProvider =>
+                    serviceProvider.GetRequiredService<LanPairingService>());
+                services.AddHostedService(serviceProvider =>
+                    serviceProvider.GetRequiredService<LanPairingService>());
 
                 services.AddSingleton<HomeViewModel>();
                 services.AddSingleton<FirstTimeSetupViewModel>();

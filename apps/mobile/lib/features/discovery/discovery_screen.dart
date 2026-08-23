@@ -32,6 +32,49 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     super.dispose();
   }
 
+  Future<void> _editDeviceName(
+    BuildContext context,
+    SessionState session,
+  ) async {
+    final controller = TextEditingController(text: session.deviceName);
+    final renamedDevice = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Rename this phone'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 32,
+            decoration: const InputDecoration(
+              labelText: 'Device name',
+              hintText: 'HEN',
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(controller.text),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    if (!mounted || renamedDevice == null) {
+      return;
+    }
+
+    await ref
+        .read(sessionControllerProvider.notifier)
+        .renameDevice(renamedDevice);
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<SessionNotice?>(
@@ -45,6 +88,19 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(next.message)));
         ref.read(sessionControllerProvider.notifier).clearNotice();
+      },
+    );
+    ref.listen<ConnectionStage>(
+      sessionControllerProvider.select((state) => state.connectionStage),
+      (previous, next) {
+        if (!mounted) {
+          return;
+        }
+
+        if (next == ConnectionStage.gameSelection &&
+            previous != ConnectionStage.gameSelection) {
+          context.go('/connector');
+        }
       },
     );
 
@@ -83,7 +139,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Discover your Connector automatically on the same local network and keep the control path free of manual IP entry.',
+                      'Give each device a name, wait for it to appear, and tap Connect to pair.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: TruckNavPalette.textSecondary,
                         height: 1.45,
@@ -98,7 +154,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         ),
                       )
                     else ...<Widget>[
-                      _DeviceCard(deviceName: session.deviceName),
+                      _DeviceCard(
+                        deviceName: session.deviceName,
+                        onEditName: () => _editDeviceName(context, session),
+                      ),
                       const SizedBox(height: 16),
                       const _LocalNetworkCard(),
                       const SizedBox(height: 16),
@@ -128,7 +187,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                           stage: session.connectionStage,
                           message: session.connectionError,
                           isScanning:
-                              session.connectionStage == ConnectionStage.discovering,
+                              session.connectionStage ==
+                              ConnectionStage.discovering,
                           onScanAgain: controller.scanAgain,
                         )
                       else
@@ -139,22 +199,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                               connector: connector,
                               isConnecting:
                                   session.connectionStage ==
-                                          ConnectionStage.connecting &&
-                                      session.selectedConnector?.id ==
-                                          connector.id,
-                              onConnect: () async {
-                                await controller.connectToConnector(connector);
-                                if (!mounted) {
-                                  return;
-                                }
-
-                                if (ref
-                                        .read(sessionControllerProvider)
-                                        .connectionStage ==
-                                    ConnectionStage.gameSelection) {
-                                  this.context.go('/connector');
-                                }
-                              },
+                                      ConnectionStage.connecting &&
+                                  session.selectedConnector?.id == connector.id,
+                              onConnect: () =>
+                                  controller.connectToConnector(connector),
                             ),
                           ),
                         ),
@@ -170,9 +218,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     switch (session.connectionStage) {
       case ConnectionStage.connecting:
         return _StateBanner(
-          title: 'Connecting',
+          title: 'Pairing devices',
           message:
-              'Sending hello to ${session.selectedConnector?.name ?? 'Connector'} and waiting for hello_ack.',
+              'Connecting to ${session.selectedConnector?.name ?? 'Connector'} now.',
           tone: TruckNavPalette.accent,
           trailing: const SizedBox(
             width: 22,
@@ -183,29 +231,32 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
       case ConnectionStage.versionMismatch:
         return _StateBanner(
           title: 'Update required',
-          message: session.connectionError ??
+          message:
+              session.connectionError ??
               'The Connector is running an incompatible protocol version.',
           tone: TruckNavPalette.error,
         );
       case ConnectionStage.connectionFailed:
         return _StateBanner(
-          title: 'Connection failed',
-          message: session.connectionError ??
-              'The Connector did not accept the current session.',
+          title: 'Could not pair',
+          message:
+              session.connectionError ??
+              'TruckNav could not open the session right now.',
           tone: TruckNavPalette.error,
         );
       case ConnectionStage.localNetworkAccessRequired:
         return _StateBanner(
           title: 'Local network access required',
-          message: session.connectionError ??
+          message:
+              session.connectionError ??
               'TruckNav needs local network access before it can scan for a Connector on this LAN.',
           tone: TruckNavPalette.error,
         );
       case ConnectionStage.reconnecting:
         return _StateBanner(
-          title: 'Reconnecting',
+          title: 'Trying again',
           message:
-              'Waiting for ${session.selectedConnector?.name ?? 'the previous Connector'} to reappear before reconnecting.',
+              'Waiting for ${session.selectedConnector?.name ?? 'the previous Connector'} to answer again.',
           tone: TruckNavPalette.accent,
         );
       default:
@@ -215,9 +266,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 }
 
 class _DeviceCard extends StatelessWidget {
-  const _DeviceCard({required this.deviceName});
+  const _DeviceCard({required this.deviceName, required this.onEditName});
 
   final String deviceName;
+  final VoidCallback onEditName;
 
   @override
   Widget build(BuildContext context) {
@@ -227,13 +279,19 @@ class _DeviceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'This device',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'This phone',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton(onPressed: onEditName, child: const Text('Edit name')),
+            ],
           ),
-          const SizedBox(height: 8),
           Text(
             deviceName,
             style: theme.textTheme.headlineSmall?.copyWith(
@@ -242,7 +300,7 @@ class _DeviceCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Android mobile identity is persistent and no longer tied to IP, MAC address, or hostname.',
+            'This is the name the PC will see when it finds this phone.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: TruckNavPalette.textSecondary,
               height: 1.5,
@@ -273,7 +331,7 @@ class _LocalNetworkCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'TruckNav discovery uses mDNS on the same LAN. The Windows PC can stay on Ethernet while this Android device stays on Wi-Fi.',
+            'Keep the phone and PC on the same local network. TruckNav now shares device presence and pair requests automatically.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: TruckNavPalette.textSecondary,
               height: 1.5,
@@ -286,10 +344,7 @@ class _LocalNetworkCard extends StatelessWidget {
 }
 
 class _FirstLaunchCard extends StatelessWidget {
-  const _FirstLaunchCard({
-    required this.controller,
-    required this.onContinue,
-  });
+  const _FirstLaunchCard({required this.controller, required this.onContinue});
 
   final TextEditingController controller;
   final Future<void> Function() onContinue;
@@ -310,7 +365,7 @@ class _FirstLaunchCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Your Android device keeps a persistent TruckNav identity. You can rename it now before local discovery starts.',
+            'Pick the name you want the PC to see, then continue to pairing.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: TruckNavPalette.textSecondary,
               height: 1.5,
@@ -333,7 +388,7 @@ class _FirstLaunchCard extends StatelessWidget {
               backgroundColor: TruckNavPalette.accent,
               foregroundColor: TruckNavPalette.background,
             ),
-            child: const Text('Continue to Discovery'),
+            child: const Text('Continue'),
           ),
         ],
       ),
@@ -415,7 +470,7 @@ class _ConnectorCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${connector.networkLabel}  •  Protocol v${connector.protocolVersion}',
+                  '${connector.networkLabel}  •  Tap Connect to pair',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: TruckNavPalette.textSecondary,
                   ),
@@ -471,7 +526,7 @@ class _EmptyDiscoveryState extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             isScanning
-                ? 'Searching for Connectors'
+                ? 'Looking for your PC'
                 : stage == ConnectionStage.localNetworkAccessRequired
                 ? 'Local network access required'
                 : 'No PC found',
@@ -483,11 +538,11 @@ class _EmptyDiscoveryState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isScanning
-                ? 'TruckNav is scanning for _trucknav._tcp.local announcements on the current network.'
+                ? 'TruckNav is checking the local network for nearby computers.'
                 : stage == ConnectionStage.localNetworkAccessRequired
                 ? (message ??
                       'TruckNav needs local network access before it can discover a Windows Connector on this LAN.')
-                : 'No Windows Connector is advertising on this network yet. Keep both devices on the same LAN and try again.',
+                : 'No nearby TruckNav PC is visible yet. Open TruckNav Connector on the computer and keep both devices on the same network.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: TruckNavPalette.textSecondary,

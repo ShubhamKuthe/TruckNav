@@ -22,10 +22,12 @@ class SessionController extends Notifier<SessionState> {
 
   late final SessionPreferencesStore _preferencesStore;
   late final ConnectorDiscoveryService _discoveryService;
+  late final LanPairingService _pairingService;
   late final ConnectorClient _connectorClient;
   final Random _random = Random();
 
   StreamSubscription<ConnectorClientEvent>? _clientEventsSubscription;
+  StreamSubscription<PairRequest>? _pairRequestsSubscription;
   Timer? _discoveryTimer;
   Timer? _reconnectTimer;
   bool _initialized = false;
@@ -36,16 +38,22 @@ class SessionController extends Notifier<SessionState> {
   @override
   SessionState build() {
     _preferencesStore = ref.watch(sessionPreferencesStoreProvider);
+    _pairingService = ref.watch(lanPairingServiceProvider);
     _discoveryService = ref.watch(connectorDiscoveryServiceProvider);
     _connectorClient = ref.watch(connectorClientProvider);
 
-    _clientEventsSubscription ??=
-        _connectorClient.events.listen(_handleConnectorClientEvent);
+    _clientEventsSubscription ??= _connectorClient.events.listen(
+      _handleConnectorClientEvent,
+    );
+    _pairRequestsSubscription ??= _pairingService.pairRequests.listen(
+      _handlePairRequest,
+    );
 
     ref.onDispose(() {
       _discoveryTimer?.cancel();
       _reconnectTimer?.cancel();
       unawaited(_clientEventsSubscription?.cancel());
+      unawaited(_pairRequestsSubscription?.cancel());
       unawaited(_discoveryService.stop());
     });
 
@@ -70,6 +78,12 @@ class SessionController extends Notifier<SessionState> {
       connectionStage: profile.isFirstLaunch
           ? ConnectionStage.namingDevice
           : ConnectionStage.discovering,
+    );
+    await _pairingService.updateLocalDevice(
+      LocalDeviceIdentity(
+        deviceId: profile.deviceId,
+        deviceName: profile.deviceName,
+      ),
     );
 
     if (!profile.isFirstLaunch) {
@@ -110,8 +124,13 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> completeFirstLaunch(String deviceName) async {
-    final normalizedName = deviceName.trim().isEmpty ? 'HEN' : deviceName.trim();
+    final normalizedName = deviceName.trim().isEmpty
+        ? 'HEN'
+        : deviceName.trim();
     await _preferencesStore.saveDeviceName(normalizedName);
+    await _pairingService.updateLocalDevice(
+      LocalDeviceIdentity(deviceId: state.deviceId, deviceName: normalizedName),
+    );
 
     state = state.copyWith(
       deviceName: normalizedName,
@@ -120,6 +139,28 @@ class SessionController extends Notifier<SessionState> {
     );
 
     await activateDiscovery();
+  }
+
+  Future<void> renameDevice(String deviceName) async {
+    final normalizedName = deviceName.trim().isEmpty
+        ? 'HEN'
+        : deviceName.trim();
+    if (normalizedName == state.deviceName) {
+      return;
+    }
+
+    await _preferencesStore.saveDeviceName(normalizedName);
+    await _pairingService.updateLocalDevice(
+      LocalDeviceIdentity(deviceId: state.deviceId, deviceName: normalizedName),
+    );
+
+    state = state.copyWith(
+      deviceName: normalizedName,
+      notice: SessionNotice(
+        kind: SessionNoticeKind.success,
+        message: 'This phone is now visible as $normalizedName.',
+      ),
+    );
   }
 
   Future<void> scanAgain() async {
@@ -249,7 +290,10 @@ class SessionController extends Notifier<SessionState> {
     _reconnectTimer?.cancel();
     _reconnectAttempt = 0;
     await _connectorClient.disconnect(intentional: true);
-    developer.log('Intentional disconnect requested.', name: 'TruckNav.Session');
+    developer.log(
+      'Intentional disconnect requested.',
+      name: 'TruckNav.Session',
+    );
 
     state = state.copyWith(
       selectedConnector: null,
@@ -313,9 +357,9 @@ class SessionController extends Notifier<SessionState> {
       final selectedConnector = state.selectedConnector == null
           ? null
           : updated.cast<ConnectorSummary?>().firstWhere(
-                (connector) => connector?.id == state.selectedConnector!.id,
-                orElse: () => state.selectedConnector,
-              );
+              (connector) => connector?.id == state.selectedConnector!.id,
+              orElse: () => state.selectedConnector,
+            );
 
       var nextStage = state.connectionStage;
       if (state.connectionStage == ConnectionStage.discovering ||
@@ -378,10 +422,7 @@ class SessionController extends Notifier<SessionState> {
                   message: 'Connection restored',
                 ),
         );
-      case ConnectorClientDisconnected(
-          :final intentional,
-          :final reason,
-        ):
+      case ConnectorClientDisconnected(:final intentional, :final reason):
         if (intentional) {
           return;
         }
@@ -407,10 +448,43 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
+  void _handlePairRequest(PairRequest request) {
+    unawaited(_acceptPairRequest(request));
+  }
+
+  Future<void> _acceptPairRequest(PairRequest request) async {
+    if (state.connectionStage == ConnectionStage.connecting ||
+        state.connectionStage == ConnectionStage.reconnecting) {
+      return;
+    }
+
+    if (state.selectedConnector?.id == request.connector.id &&
+        (state.connectionStage == ConnectionStage.gameSelection ||
+            state.connectionStage == ConnectionStage.waitingForStream ||
+            state.connectionStage == ConnectionStage.streaming)) {
+      state = state.copyWith(
+        notice: SessionNotice(
+          kind: SessionNoticeKind.success,
+          message: 'Already paired with ${request.connector.name}.',
+        ),
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      notice: SessionNotice(
+        kind: SessionNoticeKind.info,
+        message: '${request.requesterName} asked to pair with this phone.',
+      ),
+    );
+    await connectToConnector(request.connector);
+  }
+
   void _scheduleReconnect() {
     _reconnectTimer?.cancel();
 
-    final connectorId = state.selectedConnector?.id ?? state.lastConnectedDeviceId;
+    final connectorId =
+        state.selectedConnector?.id ?? state.lastConnectedDeviceId;
     if (connectorId == null) {
       return;
     }
@@ -460,13 +534,16 @@ class SessionController extends Notifier<SessionState> {
         .map(
           (connector) => connector.copyWith(
             isPrevious:
-                previousConnectorId != null && connector.id == previousConnectorId,
+                previousConnectorId != null &&
+                connector.id == previousConnectorId,
           ),
         )
         .toList(growable: false);
   }
 
-  static List<ConnectorSummary> _sortConnectors(List<ConnectorSummary> connectors) {
+  static List<ConnectorSummary> _sortConnectors(
+    List<ConnectorSummary> connectors,
+  ) {
     final sorted = connectors.toList(growable: false);
     sorted.sort((left, right) {
       if (left.isPrevious != right.isPrevious) {

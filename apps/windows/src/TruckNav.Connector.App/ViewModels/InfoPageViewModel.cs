@@ -5,8 +5,8 @@ namespace TruckNav.Connector.App.ViewModels;
 
 public abstract class InfoPageViewModel : PageViewModelBase
 {
-    protected InfoPageViewModel(PageId pageId, string title, string description)
-        : base(pageId, title, description)
+    protected InfoPageViewModel(PageId pageId, string title)
+        : base(pageId, title)
     {
         Sections = new ObservableCollection<PageSectionViewModel>();
     }

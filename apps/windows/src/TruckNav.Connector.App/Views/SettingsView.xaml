@@ -1,0 +1,228 @@
+<UserControl x:Class="TruckNav.Connector.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="Settings" Style="{StaticResource PageHeadingTextStyle}" />
+
+            <TextBlock Margin="0,18,0,6"
+                       Text="PC"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="PC Name"
+                               Style="{StaticResource BodyTextStyle}"
+                               Foreground="{StaticResource PrimaryTextBrush}" />
+                    <TextBox Margin="0,10,0,0"
+                             MaxLength="32"
+                             Text="{Binding EditablePcName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="This is the name your phone or tablet will see when it discovers this PC."
+                               Style="{StaticResource CaptionTextStyle}" />
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Save Name"
+                                Command="{Binding SavePcNameCommand}"
+                                Style="{StaticResource TruckNavButtonStyle}" />
+                        <TextBlock Grid.Column="1"
+                                   Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding PcName}"
+                                   Style="{StaticResource MonoCaptionTextStyle}"
+                                   Foreground="{StaticResource FaintTextBrush}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,6"
+                       Text="STARTUP"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Start TruckNav Connector with Windows" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Start minimized" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding StartMinimized, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Minimize to system tray" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding MinimizeToTray, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Close button minimizes to tray" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding CloseButtonMinimizesToTray, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.ColumnSpan="2"
+                                   Margin="0,6,0,0"
+                                   Text="Pressing X hides the window but keeps TruckNav running."
+                                   Style="{StaticResource CaptionTextStyle}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,6"
+                       Text="CONNECTION"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Allow automatic reconnect" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding AllowAutomaticReconnect, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Remember previously connected devices" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding RememberPreviousDevices, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,6"
+                       Text="STREAMING"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Start streaming automatically" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding StartStreamingAutomatically, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Hardware acceleration" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding HardwareAcceleration, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,6"
+                       Text="NOTIFICATIONS"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Show connection notifications" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding ShowConnectionNotifications, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Show game detection notifications" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding ShowGameDetectionNotifications, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Show streaming notifications" Style="{StaticResource BodyTextStyle}" />
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding ShowStreamingNotifications, Mode=TwoWay}"
+                                      Style="{StaticResource TruckNavToggleStyle}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,6"
+                       Text="ABOUT"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="TruckNav Connector" Style="{StaticResource BodyTextStyle}" Foreground="{StaticResource PrimaryTextBrush}" />
+                    <TextBlock Margin="0,2,0,0"
+                               Text="{Binding VersionLabel}"
+                               Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,6"
+                       Text="ADVANCED / DIAGNOSTICS"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Troubleshooting details"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                        <TextBlock Margin="0,4,0,0"
+                                   Text="Connection, listener, protocol, and recent activity live here instead of on the normal Home screen."
+                                   Style="{StaticResource CaptionTextStyle}" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Content="Open"
+                            Command="{Binding OpenDiagnosticsCommand}"
+                            Style="{StaticResource TruckNavButtonStyle}" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

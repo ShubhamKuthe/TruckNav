@@ -5,18 +5,18 @@ namespace TruckNav.Connector.App.ViewModels;
 
 public sealed partial class NavigationItemViewModel : ObservableObject
 {
-    public NavigationItemViewModel(PageId pageId, string title, string description)
+    public NavigationItemViewModel(PageId pageId, string title, string glyph)
     {
         PageId = pageId;
         Title = title;
-        Description = description;
+        Glyph = glyph;
     }
 
     public PageId PageId { get; }
 
     public string Title { get; }
 
-    public string Description { get; }
+    public string Glyph { get; }
 
     [ObservableProperty]
     private bool isSelected;

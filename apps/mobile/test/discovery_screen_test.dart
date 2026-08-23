@@ -28,7 +28,7 @@ void main() {
       ProviderScope(
         overrides: [
           sessionPreferencesStoreProvider.overrideWithValue(preferences),
-          connectorDiscoveryServiceProvider.overrideWithValue(discovery),
+          lanPairingServiceProvider.overrideWithValue(discovery),
           connectorClientProvider.overrideWithValue(client),
         ],
         child: const MaterialApp(home: DiscoveryScreen()),

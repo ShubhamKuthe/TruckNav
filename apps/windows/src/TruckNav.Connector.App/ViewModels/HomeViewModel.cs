@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.Input;
+using TruckNav.Connector.App.Services;
 using TruckNav.Connector.Core.Enums;
 using TruckNav.Connector.Networking.Session;
 
@@ -6,22 +8,22 @@ namespace TruckNav.Connector.App.ViewModels;
 
 public sealed class HomeViewModel : PageViewModelBase
 {
-    private readonly IConnectorSessionStore _sessionStore;
+    private readonly INavigationService _navigationService;
+    private readonly RelayCommand _disabledCommand = new(() => { });
 
-    public HomeViewModel(IConnectorSessionStore sessionStore)
-        : base(
-            PageId.Home,
-            "Home",
-            "The Connector home page exposes only the four product-level states that matter: mobile device, game, GPS capture, and stream.")
+    public HomeViewModel(
+        IConnectorSessionStore sessionStore,
+        INavigationService navigationService)
+        : base(PageId.Home, "Home")
     {
-        _sessionStore = sessionStore;
-        Cards = new ObservableCollection<StatusCardViewModel>();
+        _navigationService = navigationService;
+        Cards = new ObservableCollection<HomeCardViewModel>();
 
-        RefreshCards(_sessionStore.Snapshot);
-        _sessionStore.SnapshotChanged += (_, snapshot) => Dispatch(() => RefreshCards(snapshot));
+        RefreshCards(sessionStore.Snapshot);
+        sessionStore.SnapshotChanged += (_, snapshot) => Dispatch(() => RefreshCards(snapshot));
     }
 
-    public ObservableCollection<StatusCardViewModel> Cards { get; }
+    public ObservableCollection<HomeCardViewModel> Cards { get; }
 
     private void RefreshCards(ConnectorSessionSnapshot snapshot)
     {
@@ -33,88 +35,105 @@ public sealed class HomeViewModel : PageViewModelBase
         }
     }
 
-    private static IReadOnlyList<StatusCardViewModel> CreateCards(ConnectorSessionSnapshot snapshot)
+    private IReadOnlyList<HomeCardViewModel> CreateCards(ConnectorSessionSnapshot snapshot)
     {
         var mobileName = snapshot.ActiveMobileDevice?.DeviceName ?? snapshot.LastSeenMobileDevice?.DeviceName ?? "No mobile device";
+        var mobilePlatform = FormatPlatform(snapshot.ActiveMobileDevice?.Platform ?? snapshot.LastSeenMobileDevice?.Platform);
 
         var mobileCard = snapshot.DeviceState switch
         {
-            DeviceConnectionState.Connected => new StatusCardViewModel
+            DeviceConnectionState.Connected => new HomeCardViewModel
             {
+                IconGlyph = "\uE8EA",
                 Title = "Mobile Device",
-                State = "Connected",
-                Detail = $"{mobileName} is connected over the TruckNav local control channel.",
-                Hint = "V1 supports one active mobile session at a time while discovery still identifies peers by persistent device ID.",
-                Tone = StatusTone.Success
+                PrimaryText = mobileName,
+                SecondaryText = mobilePlatform,
+                StatusText = "Paired",
+                Tone = StatusTone.Success,
+                UseMonospacePrimary = true
             },
-            DeviceConnectionState.Reconnecting => new StatusCardViewModel
+            DeviceConnectionState.Reconnecting => new HomeCardViewModel
             {
+                IconGlyph = "\uE8EA",
                 Title = "Mobile Device",
-                State = "Reconnecting",
-                Detail = $"{mobileName} disconnected unexpectedly and is expected to retry discovery plus handshake.",
-                Hint = "Android reconnect backoff is approximately 1s, 2s, 3s, then 5s intervals with small jitter.",
-                Tone = StatusTone.Accent
+                PrimaryText = mobileName,
+                SecondaryText = mobilePlatform,
+                StatusText = "Waiting to reconnect",
+                Tone = StatusTone.Accent,
+                ActionText = "View Devices",
+                ActionCommand = new RelayCommand(() => _navigationService.NavigateTo(PageId.Devices)),
+                UseMonospacePrimary = true
             },
-            _ => new StatusCardViewModel
+            _ => new HomeCardViewModel
             {
+                IconGlyph = "\uE8EA",
                 Title = "Mobile Device",
-                State = "Waiting for mobile",
-                Detail = snapshot.LastSeenMobileDevice is null
-                    ? "No Android device has completed a hello handshake yet."
-                    : $"{mobileName} was the most recent known client and can reconnect after LAN rediscovery.",
-                Hint = "TruckNav never uses IP address, MAC address, or hostname as the permanent device identity.",
-                Tone = StatusTone.Warning
+                PrimaryText = "Waiting for a device",
+                SecondaryText = "Open TruckNav on your phone and it will appear here.",
+                StatusText = "Ready to pair",
+                Tone = StatusTone.Accent,
+                ActionText = "View Devices",
+                ActionCommand = new RelayCommand(() => _navigationService.NavigateTo(PageId.Devices))
             }
         };
 
         var streamState = snapshot.DeviceState switch
         {
             DeviceConnectionState.Connected => "Waiting for game",
-            DeviceConnectionState.Reconnecting => "Reconnecting control session",
-            _ => "Waiting for device"
+            DeviceConnectionState.Reconnecting => $"Waiting for {mobileName}",
+            _ => "Waiting for mobile device"
         };
 
         var streamDetail = snapshot.DeviceState switch
         {
             DeviceConnectionState.Connected =>
-                "Phase 2 stops at control signaling, so the stream remains idle until game detection and capture ship in later phases.",
+                "Streaming starts automatically once everything is ready.",
             DeviceConnectionState.Reconnecting =>
-                "The control WebSocket dropped unexpectedly, so streaming stays blocked until the mobile session successfully reconnects.",
+                "Streaming will resume automatically when the device reconnects.",
             _ =>
-                "The stream lane remains idle until a mobile device is connected, a supported game is detected, and GPS capture has been configured."
+                "Streaming starts automatically once everything is ready."
         };
 
         return
         [
             mobileCard,
-            new StatusCardViewModel
+            new HomeCardViewModel
             {
+                IconGlyph = "\uE7FC",
                 Title = "Game",
-                State = "Waiting for ETS2 or ATS",
-                Detail = "Phase 2 keeps game detection honest: no supported title is mocked as running in production state.",
-                Hint = "The connector can stay healthy and discoverable even while the PC is idle.",
-                Tone = StatusTone.Accent
+                PrimaryText = "No supported game running",
+                SecondaryText = "Start Euro Truck Simulator 2 or American Truck Simulator.",
+                Tone = StatusTone.Neutral
             },
-            new StatusCardViewModel
+            new HomeCardViewModel
             {
+                IconGlyph = "\uE707",
                 Title = "GPS Capture",
-                State = "Not Configured",
-                Detail = "Capture setup remains a later milestone and still needs per-game Route Advisor crop profiles.",
-                Hint = "No fake navigation map is rendered here; the future GPS surface will be fed by the Windows capture pipeline.",
-                Tone = StatusTone.Warning
+                PrimaryText = "GPS area not configured",
+                SecondaryText = "Select the navigation area you want to send to TruckNav.",
+                Tone = StatusTone.Warning,
+                ActionText = "Configure GPS Area",
+                ActionCommand = new RelayCommand(() => _navigationService.NavigateTo(PageId.GpsCapture)),
+                IsActionPrimary = true,
+                UseToneForPrimary = true
             },
-            new StatusCardViewModel
+            new HomeCardViewModel
             {
+                IconGlyph = "\uE8BD",
                 Title = "Stream",
-                State = streamState,
-                Detail = streamDetail,
-                Hint = "WebRTC, video encoding, and live game capture remain out of scope until later phases.",
-                Tone = snapshot.DeviceState == DeviceConnectionState.Connected
+                PrimaryText = streamState,
+                SecondaryText = streamDetail,
+                Tone = snapshot.DeviceState == DeviceConnectionState.Reconnecting
                     ? StatusTone.Accent
-                    : StatusTone.Warning
+                    : StatusTone.Neutral
             }
         ];
     }
+
+    private static string FormatPlatform(string? platform) =>
+        string.IsNullOrWhiteSpace(platform)
+            ? "Android"
+            : char.ToUpperInvariant(platform[0]) + platform[1..].ToLowerInvariant();
 
     private static void Dispatch(Action action)
     {

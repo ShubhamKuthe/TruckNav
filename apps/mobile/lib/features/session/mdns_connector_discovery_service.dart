@@ -1,38 +1,73 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:multicast_dns/multicast_dns.dart';
 
-import 'connector_address_selection.dart';
 import 'connector_discovery_service.dart';
 import 'local_network_permission_service.dart';
 import 'session_state.dart';
 import 'trucknav_protocol.dart';
 
-final connectorDiscoveryServiceProvider = Provider<ConnectorDiscoveryService>((
-  ref,
-) {
-  final service = MdnsConnectorDiscoveryService(
+final lanPairingServiceProvider = Provider<LanPairingService>((ref) {
+  final service = MulticastLanPairingService(
     localNetworkPermissionService: ref.watch(
       localNetworkPermissionServiceProvider,
     ),
   );
-  ref.onDispose(() => unawaited(service.stop()));
+  ref.onDispose(() => unawaited(service.dispose()));
   return service;
 });
 
-class MdnsConnectorDiscoveryService implements ConnectorDiscoveryService {
-  static const Duration _lookupTimeout = Duration(milliseconds: 1800);
+final connectorDiscoveryServiceProvider = Provider<ConnectorDiscoveryService>((
+  ref,
+) {
+  return ref.watch(lanPairingServiceProvider);
+});
 
-  MdnsConnectorDiscoveryService({
-    required this._localNetworkPermissionService,
-  });
+class PairRequest {
+  const PairRequest({required this.connector, required this.requesterName});
 
-  final MDnsClient _client = MDnsClient();
+  final ConnectorSummary connector;
+  final String requesterName;
+}
+
+abstract interface class LanPairingService
+    implements ConnectorDiscoveryService {
+  Stream<PairRequest> get pairRequests;
+
+  Future<void> updateLocalDevice(LocalDeviceIdentity localDevice);
+
+  Future<void> announceNow();
+}
+
+class MulticastLanPairingService implements LanPairingService {
+  static const Duration _probeWindow = Duration(milliseconds: 650);
+  static const Duration _presenceInterval = Duration(seconds: 2);
+  static const Duration _presenceTtl = Duration(seconds: 8);
+
+  MulticastLanPairingService({
+    required LocalNetworkPermissionService localNetworkPermissionService,
+  }) : _localNetworkPermissionService = localNetworkPermissionService;
+
   final LocalNetworkPermissionService _localNetworkPermissionService;
+  final StreamController<PairRequest> _pairRequestsController =
+      StreamController<PairRequest>.broadcast();
+  final Map<String, ConnectorSummary> _connectors =
+      <String, ConnectorSummary>{};
+  final InternetAddress _multicastGroup = InternetAddress(
+    truckNavLanPairingGroup,
+  );
+
+  RawDatagramSocket? _socket;
+  StreamSubscription<RawSocketEvent>? _socketSubscription;
+  Timer? _presenceTimer;
+  LocalDeviceIdentity? _localDevice;
   bool _started = false;
+
+  @override
+  Stream<PairRequest> get pairRequests => _pairRequestsController.stream;
 
   @override
   Future<void> start() async {
@@ -41,15 +76,35 @@ class MdnsConnectorDiscoveryService implements ConnectorDiscoveryService {
     }
 
     final access = await _localNetworkPermissionService.ensureDiscoveryAccess();
-    await _client.start();
+    final socket = await RawDatagramSocket.bind(
+      InternetAddress.anyIPv4,
+      truckNavLanPairingPort,
+      reuseAddress: true,
+    );
+
+    socket.readEventsEnabled = true;
+    socket.writeEventsEnabled = false;
+    socket.multicastLoopback = false;
+    socket.multicastHops = 1;
+    socket.joinMulticast(_multicastGroup);
+
+    _socket = socket;
+    _socketSubscription = socket.listen(_handleSocketEvent);
+    _presenceTimer = Timer.periodic(
+      _presenceInterval,
+      (_) => unawaited(_sendPresence()),
+    );
     _started = true;
 
     developer.log(
-      'Discovery started for $_serviceTypeLogLabel on Android targetSdk '
-      '${access.targetSdkVersion ?? 'unknown'}; multicast lock held='
-      '${access.multicastLockHeld}.',
-      name: 'TruckNav.Discovery',
+      'LAN pairing started on ${socket.address.address}:${socket.port}; '
+      'targetSdk=${access.targetSdkVersion ?? 'unknown'}; '
+      'multicastLockHeld=${access.multicastLockHeld}.',
+      name: 'TruckNav.Pairing',
     );
+
+    await _sendPresence();
+    await _sendProbe();
   }
 
   @override
@@ -58,154 +113,228 @@ class MdnsConnectorDiscoveryService implements ConnectorDiscoveryService {
       await start();
     }
 
-    final services = <String, ConnectorSummary>{};
-    final ptrRecords = await _collect<PtrResourceRecord>(
-      _client.lookup<PtrResourceRecord>(
-        ResourceRecordQuery.serverPointer(truckNavDiscoveryServiceType),
-        timeout: _lookupTimeout,
-      ),
-    );
-
-    for (final ptrRecord in ptrRecords) {
-      final connector = await _resolveConnector(ptrRecord.domainName);
-      if (connector != null) {
-        services[connector.id] = connector;
-      }
-    }
-
-    return services.values.toList(growable: false);
+    await _sendProbe();
+    await _sendPresence();
+    await Future<void>.delayed(_probeWindow);
+    return _currentConnectors();
   }
 
   @override
   Future<void> stop() async {
-    if (!_started) {
-      await _localNetworkPermissionService.releaseDiscoveryAccess();
-      return;
-    }
-
-    _client.stop();
+    _presenceTimer?.cancel();
+    _presenceTimer = null;
+    await _socketSubscription?.cancel();
+    _socketSubscription = null;
+    _socket?.close();
+    _socket = null;
     _started = false;
+    _connectors.clear();
     await _localNetworkPermissionService.releaseDiscoveryAccess();
   }
 
-  Future<ConnectorSummary?> _resolveConnector(String fullyQualifiedName) async {
-    developer.log(
-      'ROCK service discovered via PTR: $fullyQualifiedName',
-      name: 'TruckNav.Discovery',
-    );
+  Future<void> dispose() async {
+    await stop();
+    await _pairRequestsController.close();
+  }
 
-    final srvRecords = await _collect<SrvResourceRecord>(
-      _client.lookup<SrvResourceRecord>(
-        ResourceRecordQuery.service(fullyQualifiedName),
-        timeout: _lookupTimeout,
-      ),
-    );
+  @override
+  Future<void> updateLocalDevice(LocalDeviceIdentity localDevice) async {
+    _localDevice = localDevice;
+    if (_started) {
+      await _sendPresence();
+    }
+  }
 
-    if (srvRecords.isEmpty) {
-      return null;
+  @override
+  Future<void> announceNow() => _sendPresence();
+
+  void _handleSocketEvent(RawSocketEvent event) {
+    if (event != RawSocketEvent.read) {
+      return;
     }
 
-    final txtRecords = await _collect<TxtResourceRecord>(
-      _client.lookup<TxtResourceRecord>(
-        ResourceRecordQuery.text(fullyQualifiedName),
-        timeout: _lookupTimeout,
-      ),
-    );
-
-    final metadata = _txtRecordsToMap(txtRecords);
-    if (metadata['role'] != 'connector') {
-      return null;
+    final socket = _socket;
+    if (socket == null) {
+      return;
     }
 
-    final deviceId = metadata['deviceId'];
-    final deviceName = metadata['deviceName'];
-    final appVersion = metadata['appVersion'];
-    final protocolVersion = int.tryParse(metadata['protocolVersion'] ?? '');
+    Datagram? datagram;
+    while ((datagram = socket.receive()) != null) {
+      _handleDatagram(datagram!);
+    }
+  }
 
+  void _handleDatagram(Datagram datagram) {
+    try {
+      final decoded = jsonDecode(utf8.decode(datagram.data));
+      if (decoded is! Map<String, Object?>) {
+        return;
+      }
+
+      final localDevice = _localDevice;
+      final senderDeviceId = decoded['deviceId'] as String?;
+      if (localDevice != null && senderDeviceId == localDevice.deviceId) {
+        return;
+      }
+
+      switch (decoded['kind']) {
+        case 'presence':
+          _handlePresenceMessage(decoded, datagram.address);
+        case 'probe':
+          unawaited(_sendPresence());
+        case 'pair_request':
+          _handlePairRequestMessage(decoded, datagram.address);
+      }
+    } catch (error, stackTrace) {
+      developer.log(
+        'Ignoring malformed LAN pairing datagram.',
+        name: 'TruckNav.Pairing',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _handlePresenceMessage(
+    Map<String, Object?> payload,
+    InternetAddress senderAddress,
+  ) {
+    if (payload['role'] != 'connector') {
+      return;
+    }
+
+    final deviceId = payload['deviceId'] as String?;
+    final deviceName = payload['deviceName'] as String?;
+    final appVersion = payload['appVersion'] as String?;
+    final protocolVersion = payload['protocolVersion'] as int?;
+    final port = payload['wsPort'] as int?;
     if (deviceId == null ||
         deviceId.isEmpty ||
         deviceName == null ||
         deviceName.isEmpty ||
         appVersion == null ||
-        protocolVersion == null) {
-      return null;
+        appVersion.isEmpty ||
+        protocolVersion == null ||
+        port == null) {
+      return;
     }
 
-    final srvRecord = srvRecords.first;
-    final addresses = await _resolveHostAddresses(srvRecord.target);
-    if (addresses.isEmpty) {
-      return null;
-    }
-
-    developer.log(
-      'Service resolved for $deviceName ($deviceId). Target=${srvRecord.target} '
-      'port=${srvRecord.port} selectedAddress=${addresses.first}.',
-      name: 'TruckNav.Discovery',
-    );
-
-    return ConnectorSummary(
+    _connectors[deviceId] = ConnectorSummary(
       id: deviceId,
       name: deviceName,
-      host: addresses.first,
-      addresses: addresses,
-      port: srvRecord.port,
+      host: senderAddress.address,
+      addresses: <String>[senderAddress.address],
+      port: port,
       protocolVersion: protocolVersion,
       appVersion: appVersion,
-      lastSeen: DateTime.now(),
       isPrevious: false,
+      lastSeen: DateTime.now(),
+      platformLabel: 'Windows PC',
+      networkLabel: 'Local pairing',
     );
   }
 
-  Future<List<String>> _resolveHostAddresses(String hostName) async {
-    final ipv4Addresses = await _collect<IPAddressResourceRecord>(
-      _client.lookup<IPAddressResourceRecord>(
-        ResourceRecordQuery.addressIPv4(hostName),
-        timeout: _lookupTimeout,
-      ),
+  void _handlePairRequestMessage(
+    Map<String, Object?> payload,
+    InternetAddress senderAddress,
+  ) {
+    final localDevice = _localDevice;
+    if (localDevice == null ||
+        payload['targetDeviceId'] != localDevice.deviceId) {
+      return;
+    }
+
+    final connectorPayload = payload['connector'];
+    if (connectorPayload is! Map<String, Object?>) {
+      return;
+    }
+
+    final connectorId = connectorPayload['deviceId'] as String?;
+    final connectorName = connectorPayload['deviceName'] as String?;
+    final appVersion = connectorPayload['appVersion'] as String?;
+    final protocolVersion = connectorPayload['protocolVersion'] as int?;
+    final port = connectorPayload['wsPort'] as int?;
+    if (connectorId == null ||
+        connectorId.isEmpty ||
+        connectorName == null ||
+        connectorName.isEmpty ||
+        appVersion == null ||
+        appVersion.isEmpty ||
+        protocolVersion == null ||
+        port == null) {
+      return;
+    }
+
+    final connector = ConnectorSummary(
+      id: connectorId,
+      name: connectorName,
+      host: senderAddress.address,
+      addresses: <String>[senderAddress.address],
+      port: port,
+      protocolVersion: protocolVersion,
+      appVersion: appVersion,
+      isPrevious: false,
+      lastSeen: DateTime.now(),
+      platformLabel: 'Windows PC',
+      networkLabel: 'Pair request',
     );
 
-    final ipv6Addresses = await _collect<IPAddressResourceRecord>(
-      _client.lookup<IPAddressResourceRecord>(
-        ResourceRecordQuery.addressIPv6(hostName),
-        timeout: _lookupTimeout,
-      ),
-    );
-
-    return rankConnectorAddresses(
-      <InternetAddress>[
-        ...ipv4Addresses.map((record) => record.address),
-        ...ipv6Addresses.map((record) => record.address),
-      ],
-      fallbackHost: hostName,
+    _connectors[connector.id] = connector;
+    _pairRequestsController.add(
+      PairRequest(connector: connector, requesterName: connectorName),
     );
   }
 
-  static Map<String, String> _txtRecordsToMap(List<TxtResourceRecord> records) {
-    final metadata = <String, String>{};
+  Future<void> _sendProbe() async {
+    await _sendMessage(<String, Object?>{
+      'kind': 'probe',
+      'role': 'mobile',
+      'deviceId': _localDevice?.deviceId ?? '',
+    });
+  }
 
-    for (final record in records) {
-      final separatorIndex = record.text.indexOf('=');
-      if (separatorIndex <= 0) {
-        continue;
+  Future<void> _sendPresence() async {
+    final localDevice = _localDevice;
+    if (localDevice == null) {
+      return;
+    }
+
+    await _sendMessage(<String, Object?>{
+      'kind': 'presence',
+      'role': 'mobile',
+      'deviceId': localDevice.deviceId,
+      'deviceName': localDevice.deviceName,
+      'platform': 'android',
+      'appVersion': truckNavAppVersion,
+      'protocolVersion': truckNavProtocolVersion,
+    });
+  }
+
+  Future<void> _sendMessage(Map<String, Object?> payload) async {
+    final socket = _socket;
+    if (socket == null) {
+      return;
+    }
+
+    payload['sentAtUtc'] = DateTime.now().toUtc().toIso8601String();
+    final bytes = utf8.encode(jsonEncode(payload));
+    socket.send(bytes, _multicastGroup, truckNavLanPairingPort);
+  }
+
+  List<ConnectorSummary> _currentConnectors() {
+    final cutoff = DateTime.now().subtract(_presenceTtl);
+    final expiredIds = <String>[];
+
+    for (final entry in _connectors.entries) {
+      if (entry.value.lastSeen.isBefore(cutoff)) {
+        expiredIds.add(entry.key);
       }
-
-      final key = record.text.substring(0, separatorIndex);
-      final value = record.text.substring(separatorIndex + 1);
-      metadata[key] = value;
     }
 
-    return metadata;
-  }
-
-  static Future<List<TRecord>> _collect<TRecord>(
-    Stream<TRecord> stream,
-  ) async {
-    final results = <TRecord>[];
-    await for (final record in stream) {
-      results.add(record);
+    for (final expiredId in expiredIds) {
+      _connectors.remove(expiredId);
     }
-    return results;
-  }
 
-  static const String _serviceTypeLogLabel = '_trucknav._tcp.local';
+    return _connectors.values.toList(growable: false);
+  }
 }

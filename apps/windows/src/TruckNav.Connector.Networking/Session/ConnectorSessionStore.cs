@@ -171,4 +171,22 @@ public sealed class ConnectorSessionStore : IConnectorSessionStore
             SnapshotChanged?.Invoke(this, snapshot);
         }
     }
+
+    public void UpdateLocalConnector(ConnectorPeerInfo localConnector)
+    {
+        ConnectorSessionSnapshot snapshot;
+
+        lock (_gate)
+        {
+            _snapshot = _snapshot with
+            {
+                LocalConnector = localConnector,
+                LastUpdatedUtc = DateTimeOffset.UtcNow
+            };
+
+            snapshot = _snapshot;
+        }
+
+        SnapshotChanged?.Invoke(this, snapshot);
+    }
 }

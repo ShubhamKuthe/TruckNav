@@ -15,4 +15,6 @@ public interface IConnectorSessionStore
     void RecordIssue(string code, string message, Models.ConnectorPeerInfo? remotePeer = null);
 
     void MarkSessionClosed(Hosting.IConnectionSession session, bool intentional, string? description = null);
+
+    void UpdateLocalConnector(Models.ConnectorPeerInfo localConnector);
 }

@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using TruckNav.Connector.App.Services;
 using TruckNav.Connector.Core.Enums;
+using TruckNav.Connector.Networking;
 using TruckNav.Connector.Networking.Session;
 
 namespace TruckNav.Connector.App.ViewModels;
@@ -8,7 +11,7 @@ namespace TruckNav.Connector.App.ViewModels;
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly Dictionary<PageId, PageViewModelBase> _pages;
-    private readonly IConnectorSessionStore _sessionStore;
+    private readonly INavigationService _navigationService;
 
     public MainViewModel(
         HomeViewModel home,
@@ -18,9 +21,11 @@ public sealed partial class MainViewModel : ObservableObject
         GpsCaptureViewModel gpsCapture,
         SettingsViewModel settings,
         DiagnosticsViewModel diagnostics,
-        IConnectorSessionStore sessionStore)
+        IConnectorSessionStore sessionStore,
+        IConnectorUiStateStore uiStateStore,
+        INavigationService navigationService)
     {
-        _sessionStore = sessionStore;
+        _navigationService = navigationService;
         _pages = new Dictionary<PageId, PageViewModelBase>
         {
             [PageId.Home] = home,
@@ -34,70 +39,89 @@ public sealed partial class MainViewModel : ObservableObject
 
         NavigationItems = new ObservableCollection<NavigationItemViewModel>
         {
-            new(PageId.FirstTimeSetup, "First-Time Setup", "Onboarding, naming, startup, and the first capture profile."),
-            new(PageId.Home, "Home", "The four top-level product states: mobile, game, capture, stream."),
-            new(PageId.Devices, "Devices", "Known clients, trust, and one-active-client constraints."),
-            new(PageId.Games, "Games", "Supported process detection and restart behavior."),
-            new(PageId.GpsCapture, "GPS Capture", "Capture source selection, crop profiles, and resolution change handling."),
-            new(PageId.Settings, "Settings", "Startup, notifications, auto-stream, and control mapping."),
-            new(PageId.Diagnostics, "Advanced / Diagnostics", "Connection details, stream stats, logs, and troubleshooting data.")
+            new(PageId.Home, "Home", "\uE80F"),
+            new(PageId.Devices, "Devices", "\uE7F4"),
+            new(PageId.Games, "Games", "\uE7FC"),
+            new(PageId.GpsCapture, "GPS Capture", "\uE707"),
+            new(PageId.Settings, "Settings", "\uE713")
         };
 
-        ConnectorName = _sessionStore.Snapshot.LocalConnector.DeviceName;
-        FooterSummary = "Repo bootstrapped on August 23, 2026 with .NET 8 WPF and Flutter 3.44.4 shells. Final visual fidelity is blocked on the missing approved HTML design references.";
-        ApplySessionSnapshot(_sessionStore.Snapshot);
-        _sessionStore.SnapshotChanged += (_, snapshot) => Dispatch(() => ApplySessionSnapshot(snapshot));
+        ApplySessionSnapshot(sessionStore.Snapshot);
+        sessionStore.SnapshotChanged += (_, snapshot) => Dispatch(() => ApplySessionSnapshot(snapshot));
+        _navigationService.CurrentPageChanged += (_, pageId) => Dispatch(() => ApplyCurrentPage(pageId));
 
-        SelectedNavigationItem = NavigationItems[1];
+        var startPage = uiStateStore.CurrentState.HasCompletedOnboarding
+            ? PageId.Home
+            : PageId.FirstTimeSetup;
+
+        ApplyCurrentPage(startPage);
+        _navigationService.NavigateTo(startPage);
     }
-
-    public string ConnectorName { get; }
-
-    public string FooterSummary { get; }
-
-    [ObservableProperty]
-    private StatusTone readyState;
-
-    [ObservableProperty]
-    private string readySummary = string.Empty;
 
     public ObservableCollection<NavigationItemViewModel> NavigationItems { get; }
 
+    public string VersionLabel => $"v{TruckNavNetworkDefaults.AppVersion}";
+
     [ObservableProperty]
-    private NavigationItemViewModel? selectedNavigationItem;
+    private string connectorName = string.Empty;
+
+    [ObservableProperty]
+    private StatusTone readyState = StatusTone.Success;
+
+    [ObservableProperty]
+    private string readySummary = "Ready";
+
+    [ObservableProperty]
+    private bool isOnboardingVisible;
+
+    [ObservableProperty]
+    private bool isShellVisible = true;
 
     [ObservableProperty]
     private PageViewModelBase currentPage = null!;
 
-    partial void OnSelectedNavigationItemChanged(NavigationItemViewModel? value)
-    {
-        foreach (var item in NavigationItems)
-        {
-            item.IsSelected = item == value;
-        }
-
-        if (value is not null && _pages.TryGetValue(value.PageId, out var page))
-        {
-            CurrentPage = page;
-        }
-    }
+    [RelayCommand]
+    private void NavigateToPage(PageId pageId) => _navigationService.NavigateTo(pageId);
 
     private void ApplySessionSnapshot(ConnectorSessionSnapshot snapshot)
     {
+        ConnectorName = snapshot.LocalConnector.DeviceName;
+
         switch (snapshot.DeviceState)
         {
             case DeviceConnectionState.Connected:
                 ReadyState = StatusTone.Success;
-                ReadySummary = "CONNECTED";
+                ReadySummary = "Paired";
                 break;
             case DeviceConnectionState.Reconnecting:
                 ReadyState = StatusTone.Accent;
-                ReadySummary = "RECONNECTING";
+                ReadySummary = "Reconnecting";
                 break;
             default:
-                ReadyState = StatusTone.Accent;
-                ReadySummary = "READY";
+                ReadyState = StatusTone.Success;
+                ReadySummary = "Ready";
                 break;
+        }
+    }
+
+    private void ApplyCurrentPage(PageId pageId)
+    {
+        if (!_pages.TryGetValue(pageId, out var page))
+        {
+            return;
+        }
+
+        CurrentPage = page;
+        IsOnboardingVisible = pageId == PageId.FirstTimeSetup;
+        IsShellVisible = !IsOnboardingVisible;
+
+        var selectedPageId = pageId == PageId.Diagnostics
+            ? PageId.Settings
+            : pageId;
+
+        foreach (var item in NavigationItems)
+        {
+            item.IsSelected = IsShellVisible && item.PageId == selectedPageId;
         }
     }
 

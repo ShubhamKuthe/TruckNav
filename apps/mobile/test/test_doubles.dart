@@ -3,14 +3,13 @@ import 'dart:collection';
 
 import 'package:trucknav_mobile/features/session/connector_client.dart';
 import 'package:trucknav_mobile/features/session/connector_discovery_service.dart';
+import 'package:trucknav_mobile/features/session/mdns_connector_discovery_service.dart';
 import 'package:trucknav_mobile/features/session/session_preferences_store.dart';
 import 'package:trucknav_mobile/features/session/session_state.dart';
 import 'package:trucknav_mobile/features/session/trucknav_protocol.dart';
 
 class FakeSessionPreferencesStore implements SessionPreferencesStore {
-  FakeSessionPreferencesStore({
-    required this.snapshot,
-  });
+  FakeSessionPreferencesStore({required this.snapshot});
 
   SessionPreferencesSnapshot snapshot;
   String? savedDeviceName;
@@ -60,24 +59,31 @@ class FakeSessionPreferencesStore implements SessionPreferencesStore {
   }
 }
 
-class FakeDiscoveryService implements ConnectorDiscoveryService {
+class FakeDiscoveryService implements LanPairingService {
   FakeDiscoveryService({
     List<List<ConnectorSummary>>? responses,
     this.startException,
     this.scanException,
   }) : _responses = Queue<List<ConnectorSummary>>.from(
-          responses ?? <List<ConnectorSummary>>[],
-        );
+         responses ?? <List<ConnectorSummary>>[],
+       );
 
   final Queue<List<ConnectorSummary>> _responses;
   final Exception? startException;
   final Exception? scanException;
+  final StreamController<PairRequest> _pairRequests =
+      StreamController<PairRequest>.broadcast();
   int startCount = 0;
   int scanCount = 0;
   int stopCount = 0;
+  final List<LocalDeviceIdentity> updatedLocalDevices = <LocalDeviceIdentity>[];
 
   void enqueueResponse(List<ConnectorSummary> connectors) {
     _responses.add(connectors);
+  }
+
+  void emitPairRequest(PairRequest request) {
+    _pairRequests.add(request);
   }
 
   @override
@@ -109,6 +115,17 @@ class FakeDiscoveryService implements ConnectorDiscoveryService {
   @override
   Future<void> stop() async {
     stopCount += 1;
+  }
+
+  @override
+  Future<void> announceNow() async {}
+
+  @override
+  Stream<PairRequest> get pairRequests => _pairRequests.stream;
+
+  @override
+  Future<void> updateLocalDevice(LocalDeviceIdentity localDevice) async {
+    updatedLocalDevices.add(localDevice);
   }
 }
 

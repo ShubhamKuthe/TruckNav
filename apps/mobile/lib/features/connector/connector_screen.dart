@@ -71,14 +71,16 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                       ? 'Reconnecting to ${connector?.name ?? 'Connector'}'
                       : connector == null
                       ? 'No connector selected'
-                      : 'Connected to ${connector.name}',
+                      : 'Devices are paired',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Phase 2 stops at discovery plus control signaling, so this screen stays honest about connection and game-selection state.',
+                  connector == null
+                      ? 'Choose a nearby computer first.'
+                      : '${session.deviceName} is paired with ${connector.name}. You can open the GPS controls whenever you are ready.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: TruckNavPalette.textSecondary,
                     height: 1.5,
@@ -100,21 +102,23 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Running game',
+                        'Pair status',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        gameLabel(session.runningGame),
+                        connector == null
+                            ? 'Waiting for a computer'
+                            : '${session.deviceName} + ${connector.name}',
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'You can preview the game-selection shell here, but production code does not fake ETS2 or ATS as detected yet.',
+                        'Tap a game below if you want to jump into the GPS controls after pairing.',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: TruckNavPalette.textSecondary,
                           height: 1.5,
@@ -127,7 +131,8 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                         children: <Widget>[
                           ChoiceChip(
                             label: const Text('ETS2'),
-                            selected: session.selectedGame ==
+                            selected:
+                                session.selectedGame ==
                                 TruckGame.euroTruckSimulator2,
                             onSelected: (_) => controller.chooseGame(
                               TruckGame.euroTruckSimulator2,
@@ -135,7 +140,8 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                           ),
                           ChoiceChip(
                             label: const Text('ATS'),
-                            selected: session.selectedGame ==
+                            selected:
+                                session.selectedGame ==
                                 TruckGame.americanTruckSimulator,
                             onSelected: (_) => controller.chooseGame(
                               TruckGame.americanTruckSimulator,
@@ -192,7 +198,7 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                     backgroundColor: TruckNavPalette.accent,
                     foregroundColor: TruckNavPalette.background,
                   ),
-                  child: const Text('Open GPS Placeholder'),
+                  child: const Text('Open GPS Controls'),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
@@ -324,13 +330,13 @@ class _ReconnectOverlay extends StatelessWidget {
 }
 
 String _stageLabel(ConnectionStage stage) => switch (stage) {
-      ConnectionStage.gameSelection => 'Connected',
-      ConnectionStage.waitingForStream => 'Waiting for stream',
-      ConnectionStage.streaming => 'Streaming',
-      ConnectionStage.reconnecting => 'Reconnecting',
-      ConnectionStage.versionMismatch => 'Update required',
-      ConnectionStage.connectionFailed => 'Connection failed',
-      ConnectionStage.localNetworkAccessRequired => 'LAN access required',
-      ConnectionStage.connecting => 'Connecting',
-      _ => 'Discovery',
-    };
+  ConnectionStage.gameSelection => 'Connected',
+  ConnectionStage.waitingForStream => 'Waiting for stream',
+  ConnectionStage.streaming => 'Streaming',
+  ConnectionStage.reconnecting => 'Reconnecting',
+  ConnectionStage.versionMismatch => 'Update required',
+  ConnectionStage.connectionFailed => 'Connection failed',
+  ConnectionStage.localNetworkAccessRequired => 'LAN access required',
+  ConnectionStage.connecting => 'Connecting',
+  _ => 'Discovery',
+};

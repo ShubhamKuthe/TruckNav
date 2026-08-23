@@ -9,6 +9,50 @@ import '../session/session_controller.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  Future<void> _editDeviceName(
+    BuildContext context,
+    WidgetRef ref,
+    String currentName,
+  ) async {
+    final controller = TextEditingController(text: currentName);
+    final renamedDevice = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Rename this phone'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 32,
+            decoration: const InputDecoration(
+              labelText: 'Device name',
+              hintText: 'HEN',
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(controller.text),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    if (renamedDevice == null) {
+      return;
+    }
+
+    await ref
+        .read(sessionControllerProvider.notifier)
+        .renameDevice(renamedDevice);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionControllerProvider);
@@ -80,15 +124,32 @@ class SettingsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      'Current device',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Text(
+                            'Current device',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              _editDeviceName(context, ref, session.deviceName),
+                          child: const Text('Edit name'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '${session.deviceName} keeps a persistent TruckNav UUID. Manual IP entry is still intentionally absent from the product flow.',
+                      session.deviceName,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      'This is the name nearby PCs will see when they look for this phone.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: TruckNavPalette.textSecondary,
                         height: 1.5,

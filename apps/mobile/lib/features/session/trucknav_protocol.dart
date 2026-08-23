@@ -5,26 +5,25 @@ const String truckNavAppVersion = '0.1.0';
 const String truckNavDiscoveryServiceType = '_trucknav._tcp.local';
 const String truckNavWebSocketPath = '/ws';
 const String truckNavIntentionalDisconnectReason = 'intentional_disconnect';
+const String truckNavLanPairingGroup = '239.255.18.18';
+const int truckNavLanPairingPort = 43112;
 
 class LocalDeviceIdentity {
-  const LocalDeviceIdentity({
-    required this.deviceId,
-    required this.deviceName,
-  });
+  const LocalDeviceIdentity({required this.deviceId, required this.deviceName});
 
   final String deviceId;
   final String deviceName;
 
   Map<String, Object?> toHelloMessage() => <String, Object?>{
-        'type': 'hello',
-        'protocolVersion': truckNavProtocolVersion,
-        'appVersion': truckNavAppVersion,
-        'deviceId': deviceId,
-        'deviceName': deviceName,
-        'role': 'mobile',
-        'platform': 'android',
-        'capabilities': const <String>[],
-      };
+    'type': 'hello',
+    'protocolVersion': truckNavProtocolVersion,
+    'appVersion': truckNavAppVersion,
+    'deviceId': deviceId,
+    'deviceName': deviceName,
+    'role': 'mobile',
+    'platform': 'android',
+    'capabilities': const <String>[],
+  };
 }
 
 class PeerIdentity {
@@ -74,10 +73,7 @@ class HelloAckProtocolMessage extends ProtocolInboundMessage {
 }
 
 class ErrorProtocolMessage extends ProtocolInboundMessage {
-  const ErrorProtocolMessage({
-    required this.code,
-    required this.message,
-  });
+  const ErrorProtocolMessage({required this.code, required this.message});
 
   final String code;
   final String message;
@@ -95,7 +91,9 @@ ProtocolInboundMessage parseProtocolInboundMessage(String rawMessage) {
 
   final type = decoded['type'];
   if (type is! String || type.isEmpty) {
-    throw const FormatException("Protocol payload is missing the string 'type'.");
+    throw const FormatException(
+      "Protocol payload is missing the string 'type'.",
+    );
   }
 
   switch (type) {
@@ -109,7 +107,9 @@ ProtocolInboundMessage parseProtocolInboundMessage(String rawMessage) {
     case 'pong':
       return const PongProtocolMessage();
     default:
-      throw FormatException("Unsupported inbound protocol message type '$type'.");
+      throw FormatException(
+        "Unsupported inbound protocol message type '$type'.",
+      );
   }
 }
 

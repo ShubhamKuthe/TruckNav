@@ -1,0 +1,74 @@
+<UserControl x:Class="TruckNav.Connector.App.Views.GamesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="Games" Style="{StaticResource PageHeadingTextStyle}" />
+
+            <ItemsControl Margin="0,16,0,0" ItemsSource="{Binding Games}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,12"
+                                Style="{StaticResource TruckNavCardStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="44"
+                                        Height="44"
+                                        Background="{StaticResource Surface3Brush}"
+                                        CornerRadius="12">
+                                    <TextBlock Text="&#xE7FC;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="20"
+                                               Foreground="{Binding RunningTone, Converter={StaticResource StatusToneToBrushConverter}}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource CardValueTextStyle}" FontSize="14.5" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Ellipse Width="6"
+                                                 Height="6"
+                                                 VerticalAlignment="Center"
+                                                 Fill="{Binding RunningTone, Converter={StaticResource StatusToneToBrushConverter}}" />
+                                        <TextBlock Margin="6,0,0,0"
+                                                   Text="{Binding RunningLabel}"
+                                                   Style="{StaticResource CaptionTextStyle}"
+                                                   Foreground="{Binding RunningTone, Converter={StaticResource StatusToneToBrushConverter}}" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Margin="14,0,0,0" MaxWidth="160">
+                                    <TextBlock Text="{Binding ConfigurationLabel}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsConfigured}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Margin="0,4,0,0"
+                                               Text="{Binding Detail}"
+                                               Style="{StaticResource CaptionTextStyle}" />
+                                    <Button Margin="0,8,0,0"
+                                            Content="{Binding ActionText}"
+                                            IsEnabled="{Binding IsActionEnabled}"
+                                            Style="{StaticResource TruckNavButtonStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

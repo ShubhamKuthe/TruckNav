@@ -1,0 +1,72 @@
+<UserControl x:Class="TruckNav.Connector.App.Views.GpsCaptureView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="GPS Capture" Style="{StaticResource PageHeadingTextStyle}" />
+            <TextBlock Margin="0,12,0,0"
+                       Style="{StaticResource MonoCaptionTextStyle}">
+                <Run Text="① Choose Game" Foreground="{StaticResource AccentBrush}" />
+                <Run Text=" — ② Select Area — ③ Preview — ④ Save" />
+            </TextBlock>
+
+            <TextBlock Margin="0,18,0,8"
+                       Text="1 CHOOSE GAME"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <Button Content="Euro Truck Simulator 2"
+                            IsEnabled="False"
+                            Style="{StaticResource TruckNavButtonStyle}" />
+                    <Button Margin="0,8,0,0"
+                            Content="American Truck Simulator"
+                            IsEnabled="False"
+                            Style="{StaticResource TruckNavButtonStyle}" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,8"
+                       Text="2 SELECT AREA"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7BA;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="16"
+                                   Foreground="{StaticResource ErrorBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Margin="8,0,0,0"
+                                   Text="A live game window is required"
+                                   Style="{StaticResource CardValueTextStyle}" />
+                    </StackPanel>
+                    <TextBlock Margin="0,8,0,0"
+                               Text="Start ETS2 or ATS, then return here to select the GPS area. TruckNav does not draw a fake preview when the real game image is unavailable."
+                               Style="{StaticResource BodyTextStyle}" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Margin="0,18,0,8"
+                       Text="3 PREVIEW"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <TextBlock Text="Preview appears here after a live game capture is available."
+                           Style="{StaticResource BodyTextStyle}" />
+            </Border>
+
+            <TextBlock Margin="0,18,0,8"
+                       Text="4 SAVE"
+                       Style="{StaticResource SectionLabelTextStyle}" />
+            <Border Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="No GPS area is ready to save yet."
+                               Style="{StaticResource BodyTextStyle}" />
+                    <Button Margin="0,12,0,0"
+                            Content="Save GPS Area"
+                            IsEnabled="False"
+                            Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
