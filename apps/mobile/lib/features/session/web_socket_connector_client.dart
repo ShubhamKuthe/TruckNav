@@ -106,6 +106,16 @@ class WebSocketConnectorClient implements ConnectorClient {
   }
 
   @override
+  Future<void> requestGameState() async {
+    final channel = _channel;
+    if (channel == null) {
+      return;
+    }
+
+    channel.sink.add(encodeGameStateRequestMessage());
+  }
+
+  @override
   Future<void> dispose() async {
     await disconnect();
     await _eventsController.close();
@@ -237,6 +247,10 @@ class WebSocketConnectorClient implements ConnectorClient {
           }
         case PongProtocolMessage():
           _applyPongSample();
+        case GameStateProtocolMessage(:final games):
+          _eventsController.add(
+            ConnectorClientGameStateUpdated(_toSupportedGameState(games)),
+          );
       }
     } on FormatException catch (exception) {
       if (!(_handshakeCompleter?.isCompleted ?? true)) {
@@ -398,5 +412,26 @@ class WebSocketConnectorClient implements ConnectorClient {
     _activeEndpoint = null;
     _degradedPongSamples = 0;
     _healthyPongSamples = 0;
+  }
+
+  static SupportedGameState _toSupportedGameState(
+    List<ProtocolGameStateEntry> games,
+  ) {
+    var ets2Running = false;
+    var atsRunning = false;
+
+    for (final game in games) {
+      switch (game.game) {
+        case 'ets2':
+          ets2Running = game.running;
+        case 'ats':
+          atsRunning = game.running;
+      }
+    }
+
+    return SupportedGameState(
+      ets2Running: ets2Running,
+      atsRunning: atsRunning,
+    );
   }
 }

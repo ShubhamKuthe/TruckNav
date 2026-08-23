@@ -229,6 +229,7 @@ class SessionController extends Notifier<SessionState> {
             lastSeen: DateTime.now(),
           ),
           connectionStage: ConnectionStage.gameSelection,
+          supportedGames: const SupportedGameState.none(),
           runningGame: TruckGame.none,
           selectedGame: TruckGame.none,
           weakConnection: false,
@@ -283,7 +284,10 @@ class SessionController extends Notifier<SessionState> {
   }
 
   void returnToGameSelection() {
-    state = state.copyWith(connectionStage: ConnectionStage.gameSelection);
+    state = state.copyWith(
+      connectionStage: ConnectionStage.gameSelection,
+      selectedGame: TruckGame.none,
+    );
   }
 
   Future<void> disconnect() async {
@@ -297,6 +301,7 @@ class SessionController extends Notifier<SessionState> {
 
     state = state.copyWith(
       selectedConnector: null,
+      supportedGames: const SupportedGameState.none(),
       runningGame: TruckGame.none,
       selectedGame: TruckGame.none,
       weakConnection: false,
@@ -333,6 +338,10 @@ class SessionController extends Notifier<SessionState> {
 
   void clearNotice() {
     state = state.copyWith(notice: null);
+  }
+
+  Future<void> requestGameStateRefresh() async {
+    await _connectorClient.requestGameState();
   }
 
   Future<void> _performDiscoveryScan() async {
@@ -409,6 +418,31 @@ class SessionController extends Notifier<SessionState> {
 
   void _handleConnectorClientEvent(ConnectorClientEvent event) {
     switch (event) {
+      case ConnectorClientGameStateUpdated(:final gameState):
+        final runningGame = gameState.singleRunningGameOrNone;
+        var nextSelectedGame = state.selectedGame;
+        var nextStage = state.connectionStage;
+
+        if (nextSelectedGame != TruckGame.none &&
+            !gameState.isRunning(nextSelectedGame) &&
+            nextStage == ConnectionStage.streaming) {
+          nextStage = ConnectionStage.waitingForStream;
+        }
+
+        if (state.autoOpenRunningGame &&
+            nextStage == ConnectionStage.gameSelection &&
+            nextSelectedGame == TruckGame.none &&
+            runningGame != TruckGame.none) {
+          nextSelectedGame = runningGame;
+          nextStage = ConnectionStage.waitingForStream;
+        }
+
+        state = state.copyWith(
+          supportedGames: gameState,
+          runningGame: runningGame,
+          selectedGame: nextSelectedGame,
+          connectionStage: nextStage,
+        );
       case ConnectorClientWeakConnectionChanged(:final isWeak):
         state = state.copyWith(
           weakConnection: isWeak,

@@ -92,6 +92,24 @@ public sealed class ConnectorSessionStoreTests : IDisposable
         Assert.Equal(1, winners);
     }
 
+    [Fact]
+    public void UpdateGameDetection_ShouldSuppressEquivalentSnapshots()
+    {
+        var identityProvider = CreateIdentityProvider();
+        var store = new ConnectorSessionStore(identityProvider);
+        var changeCount = 0;
+        store.SnapshotChanged += (_, _) => changeCount += 1;
+
+        var snapshot = CreateGameDetectionSnapshot(GameType.EuroTruckSimulator2, processId: 101, windowHandle: 55);
+
+        store.UpdateGameDetection(snapshot);
+        store.UpdateGameDetection(snapshot);
+        store.UpdateGameDetection(CreateGameDetectionSnapshot(GameType.EuroTruckSimulator2, processId: 101, windowHandle: 55));
+
+        Assert.Equal(1, changeCount);
+        Assert.True(store.Snapshot.GameDetection.IsRunning(GameType.EuroTruckSimulator2));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_storageRoot))
@@ -128,6 +146,23 @@ public sealed class ConnectorSessionStoreTests : IDisposable
             Role: "mobile",
             Platform: "android",
             Capabilities: Array.Empty<string>());
+
+    private static Core.Models.GameDetectionSnapshot CreateGameDetectionSnapshot(
+        GameType gameType,
+        int processId,
+        nint windowHandle) =>
+        new(
+            new[]
+            {
+                new Core.Models.RunningGameInfo(
+                    gameType,
+                    gameType == GameType.EuroTruckSimulator2 ? "eurotrucks2.exe" : "amtrucks.exe",
+                    processId,
+                    windowHandle,
+                    "Truck window",
+                    ProcessRunning: true,
+                    WindowAvailable: windowHandle != 0)
+            });
 
     private sealed class FakeConnectionSession : IConnectionSession
     {

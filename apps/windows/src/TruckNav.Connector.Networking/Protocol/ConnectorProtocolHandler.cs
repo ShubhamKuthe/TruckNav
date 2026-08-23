@@ -33,6 +33,8 @@ public sealed class ConnectorProtocolHandler : IProtocolHandler
             {
                 ProtocolMessageType.Hello =>
                     ProtocolReadResult.FromMessage(ProtocolSerializer.Deserialize<HelloMessage>(json)),
+                ProtocolMessageType.GameStateRequest =>
+                    ProtocolReadResult.FromMessage(ProtocolSerializer.Deserialize<GameStateRequestMessage>(json)),
                 ProtocolMessageType.Ping =>
                     ProtocolReadResult.FromMessage(ProtocolSerializer.Deserialize<PingMessage>(json)),
                 _ => ProtocolReadResult.FromError(

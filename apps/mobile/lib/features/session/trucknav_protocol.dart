@@ -83,6 +83,22 @@ class PongProtocolMessage extends ProtocolInboundMessage {
   const PongProtocolMessage();
 }
 
+class ProtocolGameStateEntry {
+  const ProtocolGameStateEntry({
+    required this.game,
+    required this.running,
+  });
+
+  final String game;
+  final bool running;
+}
+
+class GameStateProtocolMessage extends ProtocolInboundMessage {
+  const GameStateProtocolMessage(this.games);
+
+  final List<ProtocolGameStateEntry> games;
+}
+
 ProtocolInboundMessage parseProtocolInboundMessage(String rawMessage) {
   final decoded = jsonDecode(rawMessage);
   if (decoded is! Map<String, Object?>) {
@@ -106,6 +122,20 @@ ProtocolInboundMessage parseProtocolInboundMessage(String rawMessage) {
       );
     case 'pong':
       return const PongProtocolMessage();
+    case 'game_state':
+      final games = (decoded['games'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map>()
+          .map(
+            (game) {
+              final payload = Map<String, Object?>.from(game);
+              return ProtocolGameStateEntry(
+                game: payload['game'] as String? ?? '',
+                running: payload['running'] as bool? ?? false,
+              );
+            },
+          )
+          .toList(growable: false);
+      return GameStateProtocolMessage(games);
     default:
       throw FormatException(
         "Unsupported inbound protocol message type '$type'.",
@@ -118,3 +148,6 @@ String encodeHelloMessage(LocalDeviceIdentity localDevice) =>
 
 String encodePingMessage() =>
     jsonEncode(const <String, Object?>{'type': 'ping'});
+
+String encodeGameStateRequestMessage() =>
+    jsonEncode(const <String, Object?>{'type': 'game_state_request'});

@@ -17,4 +17,6 @@ public interface IConnectorSessionStore
     void MarkSessionClosed(Hosting.IConnectionSession session, bool intentional, string? description = null);
 
     void UpdateLocalConnector(Models.ConnectorPeerInfo localConnector);
+
+    void UpdateGameDetection(TruckNav.Connector.Core.Models.GameDetectionSnapshot snapshot);
 }

@@ -1,0 +1,13 @@
+{
+  "type": "game_state",
+  "games": [
+    {
+      "game": "ets2",
+      "running": true
+    },
+    {
+      "game": "ats",
+      "running": false
+    }
+  ]
+}

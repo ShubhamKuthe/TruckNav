@@ -30,11 +30,30 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
         ref.read(sessionControllerProvider.notifier).clearNotice();
       },
     );
+    ref.listen<ConnectionStage>(
+      sessionControllerProvider.select((state) => state.connectionStage),
+      (previous, next) {
+        if (!mounted) {
+          return;
+        }
+
+        if (next == ConnectionStage.waitingForStream &&
+            previous != ConnectionStage.waitingForStream) {
+          context.go('/gps');
+        }
+      },
+    );
 
     final session = ref.watch(sessionControllerProvider);
     final controller = ref.read(sessionControllerProvider.notifier);
     final connector = session.selectedConnector;
     final theme = Theme.of(context);
+    final runningGames = session.supportedGames.runningGames;
+    final otherGames = TruckGame.values
+        .where((game) => game != TruckGame.none && !session.supportedGames.isRunning(game))
+        .toList(growable: false);
+    final selectedGameMissing = session.selectedGame != TruckGame.none &&
+        !session.supportedGames.isRunning(session.selectedGame);
 
     return Scaffold(
       appBar: AppBar(
@@ -80,12 +99,23 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                 Text(
                   connector == null
                       ? 'Choose a nearby computer first.'
-                      : '${session.deviceName} is paired with ${connector.name}. You can open the GPS controls whenever you are ready.',
+                      : '${session.deviceName} is paired with ${connector.name}. TruckNav will keep this session alive even if the game opens or closes.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: TruckNavPalette.textSecondary,
                     height: 1.5,
                   ),
                 ),
+                if (selectedGameMissing) ...<Widget>[
+                  const SizedBox(height: 20),
+                  _GameMissingBanner(
+                    connectorName: connector?.name ?? 'ROCK',
+                    game: session.selectedGame,
+                    onCheckAgain: controller.requestGameStateRefresh,
+                    onChooseAnotherGame: () {
+                      controller.returnToGameSelection();
+                    },
+                  ),
+                ],
                 if (session.weakConnection) ...<Widget>[
                   const SizedBox(height: 20),
                   const _ConnectorBanner(
@@ -96,63 +126,59 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                   ),
                 ],
                 const SizedBox(height: 24),
-                PanelCard(
-                  padding: const EdgeInsets.all(22),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        'Pair status',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        connector == null
-                            ? 'Waiting for a computer'
-                            : '${session.deviceName} + ${connector.name}',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Tap a game below if you want to jump into the GPS controls after pairing.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: TruckNavPalette.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: <Widget>[
-                          ChoiceChip(
-                            label: const Text('ETS2'),
-                            selected:
-                                session.selectedGame ==
-                                TruckGame.euroTruckSimulator2,
-                            onSelected: (_) => controller.chooseGame(
-                              TruckGame.euroTruckSimulator2,
-                            ),
-                          ),
-                          ChoiceChip(
-                            label: const Text('ATS'),
-                            selected:
-                                session.selectedGame ==
-                                TruckGame.americanTruckSimulator,
-                            onSelected: (_) => controller.chooseGame(
-                              TruckGame.americanTruckSimulator,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                Text(
+                  runningGames.isEmpty
+                      ? 'No supported game detected'
+                      : 'Detected on ${connector?.name ?? 'ROCK'}',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
+                Text(
+                  runningGames.isEmpty
+                      ? 'Start Euro Truck Simulator 2 or American Truck Simulator on the PC.'
+                      : 'Open GPS only after choosing the game you want to follow.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: TruckNavPalette.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (runningGames.isEmpty)
+                  ..._buildGameCards(
+                    session: session,
+                    games: const <TruckGame>[
+                      TruckGame.euroTruckSimulator2,
+                      TruckGame.americanTruckSimulator,
+                    ],
+                    isRunning: false,
+                    controller: controller,
+                  )
+                else
+                  ..._buildGameCards(
+                    session: session,
+                    games: runningGames,
+                    isRunning: true,
+                    controller: controller,
+                  ),
+                if (otherGames.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Other Games',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._buildGameCards(
+                    session: session,
+                    games: otherGames,
+                    isRunning: false,
+                    controller: controller,
+                  ),
+                ],
+                const SizedBox(height: 10),
                 PanelCard(
                   padding: const EdgeInsets.all(22),
                   child: Column(
@@ -181,26 +207,14 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                       ),
                       const SizedBox(height: 8),
                       _StatusLine(
-                        label: 'Weak connection',
-                        value: session.weakConnection ? 'Yes' : 'No',
+                        label: 'Automatically open running game',
+                        value:
+                            session.autoOpenRunningGame ? 'Enabled' : 'Disabled',
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 22),
-                FilledButton(
-                  onPressed: () {
-                    controller.openGps();
-                    context.go('/gps');
-                  },
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(58),
-                    backgroundColor: TruckNavPalette.accent,
-                    foregroundColor: TruckNavPalette.background,
-                  ),
-                  child: const Text('Open GPS Controls'),
-                ),
-                const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () async {
                     await controller.disconnect();
@@ -221,6 +235,185 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
           ),
           if (session.connectionStage == ConnectionStage.reconnecting)
             const _ReconnectOverlay(),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildGameCards({
+    required SessionState session,
+    required List<TruckGame> games,
+    required bool isRunning,
+    required SessionController controller,
+  }) {
+    return games
+        .map(
+          (game) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _GameStatusCard(
+              game: game,
+              isRunning: isRunning,
+              isSelected: session.selectedGame == game,
+              onOpenGps: isRunning
+                  ? () {
+                      controller.chooseGame(game);
+                      controller.openGps();
+                    }
+                  : null,
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
+}
+
+class _GameStatusCard extends StatelessWidget {
+  const _GameStatusCard({
+    required this.game,
+    required this.isRunning,
+    required this.isSelected,
+    required this.onOpenGps,
+  });
+
+  final TruckGame game;
+  final bool isRunning;
+  final bool isSelected;
+  final VoidCallback? onOpenGps;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = isRunning
+        ? TruckNavPalette.success
+        : TruckNavPalette.textSecondary;
+
+    return PanelCard(
+      padding: const EdgeInsets.all(22),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.sports_esports_rounded,
+              color: accentColor,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  gameLabel(game).toUpperCase(),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: TruckNavPalette.textSecondary,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isRunning ? 'Running' : 'Not running',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: isRunning
+                        ? TruckNavPalette.success
+                        : TruckNavPalette.textPrimary,
+                  ),
+                ),
+                if (isSelected) ...<Widget>[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Selected for GPS',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: TruckNavPalette.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (onOpenGps != null)
+            FilledButton(
+              onPressed: onOpenGps,
+              style: FilledButton.styleFrom(
+                backgroundColor: TruckNavPalette.accent,
+                foregroundColor: TruckNavPalette.background,
+              ),
+              child: const Text('Open GPS'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GameMissingBanner extends StatelessWidget {
+  const _GameMissingBanner({
+    required this.connectorName,
+    required this.game,
+    required this.onCheckAgain,
+    required this.onChooseAnotherGame,
+  });
+
+  final String connectorName;
+  final TruckGame game;
+  final Future<void> Function() onCheckAgain;
+  final VoidCallback onChooseAnotherGame;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PanelCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Game not detected',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: TruckNavPalette.accent,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Start ${gameLabel(game)} on $connectorName to continue.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: TruckNavPalette.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: <Widget>[
+              FilledButton(
+                onPressed: () {
+                  onCheckAgain();
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: TruckNavPalette.accent,
+                  foregroundColor: TruckNavPalette.background,
+                ),
+                child: const Text('Check Again'),
+              ),
+              OutlinedButton(
+                onPressed: onChooseAnotherGame,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: TruckNavPalette.border),
+                  foregroundColor: TruckNavPalette.textPrimary,
+                ),
+                child: const Text('Choose Another Game'),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -331,7 +524,7 @@ class _ReconnectOverlay extends StatelessWidget {
 
 String _stageLabel(ConnectionStage stage) => switch (stage) {
   ConnectionStage.gameSelection => 'Connected',
-  ConnectionStage.waitingForStream => 'Waiting for stream',
+  ConnectionStage.waitingForStream => 'Waiting for game state',
   ConnectionStage.streaming => 'Streaming',
   ConnectionStage.reconnecting => 'Reconnecting',
   ConnectionStage.versionMismatch => 'Update required',

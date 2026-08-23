@@ -29,6 +29,50 @@ public sealed class CaptureRegionMathTests
         Assert.Equal(100, projected.Height);
     }
 
+    [Fact]
+    public void Project_ShouldPreserveNormalizedCropAcrossCompatibleResolutionChange()
+    {
+        var normalized = CaptureRegionMath.Normalize(1440, 620, 430, 400, 1920, 1080);
+
+        var projected = CaptureRegionMath.Project(normalized, 2560, 1440);
+
+        Assert.Equal(1920, projected.X);
+        Assert.Equal(827, projected.Y);
+        Assert.Equal(573, projected.Width);
+        Assert.Equal(533, projected.Height);
+    }
+
+    [Fact]
+    public void Clamp_ShouldEnforceMinimumSizeAndFrameBounds()
+    {
+        var clamped = CaptureRegionMath.Clamp(new PixelRectangle(990, 490, 4, 3), 1000, 500);
+
+        Assert.Equal(new PixelRectangle(936, 436, 64, 64), clamped);
+    }
+
+    [Fact]
+    public void Normalize_ShouldRejectSelectionBelowMinimumSize()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CaptureRegionMath.Normalize(0, 0, 63, 64, 1920, 1080));
+    }
+
+    [Theory]
+    [InlineData(-0.01, 0, 0.2, 0.2)]
+    [InlineData(0, 0, 0, 0.2)]
+    [InlineData(0.9, 0, 0.2, 0.2)]
+    [InlineData(0, 0.9, 0.2, 0.2)]
+    [InlineData(double.NaN, 0, 0.2, 0.2)]
+    public void ValidateNormalizedRegion_ShouldRejectInvalidCrop(
+        double x,
+        double y,
+        double width,
+        double height)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CaptureRegionMath.ValidateNormalizedRegion(new NormalizedRegion(x, y, width, height)));
+    }
+
     [Theory]
     [InlineData(1920, 1080, 1920, 1080, false)]
     [InlineData(1920, 1080, 1800, 1080, true)]

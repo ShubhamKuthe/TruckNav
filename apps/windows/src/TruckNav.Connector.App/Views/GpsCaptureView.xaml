@@ -1,72 +1,320 @@
 <UserControl x:Class="TruckNav.Connector.App.Views.GpsCaptureView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel>
-            <TextBlock Text="GPS Capture" Style="{StaticResource PageHeadingTextStyle}" />
-            <TextBlock Margin="0,12,0,0"
-                       Style="{StaticResource MonoCaptionTextStyle}">
-                <Run Text="① Choose Game" Foreground="{StaticResource AccentBrush}" />
-                <Run Text=" — ② Select Area — ③ Preview — ④ Save" />
-            </TextBlock>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:TruckNav.Connector.App.Controls"
+             xmlns:enums="clr-namespace:TruckNav.Connector.Core.Enums;assembly=TruckNav.Connector.Core"
+             Unloaded="OnUnloaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <TextBlock Margin="0,18,0,8"
-                       Text="1 CHOOSE GAME"
-                       Style="{StaticResource SectionLabelTextStyle}" />
-            <Border Style="{StaticResource TruckNavCardStyle}">
-                <StackPanel>
-                    <Button Content="Euro Truck Simulator 2"
-                            IsEnabled="False"
-                            Style="{StaticResource TruckNavButtonStyle}" />
-                    <Button Margin="0,8,0,0"
-                            Content="American Truck Simulator"
-                            IsEnabled="False"
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Content="Back"
+                    Command="{Binding GoBackCommand}"
+                    Style="{StaticResource TruckNavGhostButtonStyle}" />
+            <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                <TextBlock Text="Configure GPS Area" Style="{StaticResource PageHeadingTextStyle}" />
+                <TextBlock Margin="0,3,0,0"
+                           Text="Select the real Route Advisor map pixels that should appear on your phone or tablet."
+                           Style="{StaticResource CaptionTextStyle}" />
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1"
+                Margin="0,15,0,14"
+                Padding="12,8"
+                Background="{StaticResource Surface2Brush}"
+                CornerRadius="9">
+            <TextBlock Text="{Binding StepProgressText}"
+                       Style="{StaticResource MonoCaptionTextStyle}"
+                       Foreground="{StaticResource AccentBrush}" />
+        </Border>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <StackPanel Visibility="{Binding IsStepOne, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="1  CHOOSE GAME" Style="{StaticResource SectionLabelTextStyle}" />
+                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Games}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,0,12,0" Style="{StaticResource TruckNavCardStyle}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}"
+                                                       Style="{StaticResource CardValueTextStyle}"
+                                                       FontSize="13.5" />
+                                            <TextBlock Grid.Column="1"
+                                                       Margin="10,0,0,0"
+                                                       Text="{Binding RunningLabel}"
+                                                       Style="{StaticResource MonoCaptionTextStyle}"
+                                                       Foreground="{StaticResource SuccessBrush}" />
+                                        </Grid>
+                                        <TextBlock Margin="0,8,0,0"
+                                                   Text="{Binding Detail}"
+                                                   Style="{StaticResource CaptionTextStyle}" />
+                                        <TextBlock Margin="0,10,0,0"
+                                                   Text="{Binding ConfigurationLabel}"
+                                                   Style="{StaticResource MonoCaptionTextStyle}" />
+                                        <Button Margin="0,14,0,0"
+                                                Content="Use This Game"
+                                                Command="{Binding UseCommand}"
+                                                Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Margin="0,14,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Check Again"
+                            Command="{Binding CheckAgainCommand}"
                             Style="{StaticResource TruckNavButtonStyle}" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Margin="0,18,0,8"
-                       Text="2 SELECT AREA"
-                       Style="{StaticResource SectionLabelTextStyle}" />
-            <Border Style="{StaticResource TruckNavCardStyle}">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE7BA;"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="16"
-                                   Foreground="{StaticResource ErrorBrush}"
-                                   VerticalAlignment="Center" />
-                        <TextBlock Margin="8,0,0,0"
-                                   Text="A live game window is required"
-                                   Style="{StaticResource CardValueTextStyle}" />
-                    </StackPanel>
+                <StackPanel Visibility="{Binding IsStepTwo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Border Margin="0,0,0,12"
+                            Padding="13"
+                            Background="#241B11"
+                            BorderBrush="{StaticResource AccentBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Visibility="{Binding ResolutionWarningVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="GPS area may need adjustment" Style="{StaticResource CardValueTextStyle}" />
+                                <TextBlock Margin="0,3,0,0"
+                                           Text="The game resolution has changed since this GPS area was configured."
+                                           Style="{StaticResource CaptionTextStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0,0,0">
+                                <Button Content="Keep Current"
+                                        Command="{Binding KeepCurrentResolutionCommand}"
+                                        Style="{StaticResource TruckNavGhostButtonStyle}" />
+                                <Button Margin="8,0,0,0"
+                                        Content="Review GPS Area"
+                                        Command="{Binding ReviewGpsAreaCommand}"
+                                        Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Text="2  SELECT AREA" Style="{StaticResource SectionLabelTextStyle}" />
+                    <TextBlock Margin="0,5,0,10"
+                               Text="Drag and resize the amber box around the in-game Route Advisor GPS map."
+                               Style="{StaticResource BodyTextStyle}" />
+
+                    <Grid Height="330" Background="#080B0D">
+                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
+                            <Grid>
+                                <Image Source="{Binding FullPreview}" Stretch="Uniform" />
+                                <controls:CaptureSelectionOverlay FrameWidth="{Binding FrameWidth}"
+                                                                  FrameHeight="{Binding FrameHeight}"
+                                                                  Selection="{Binding Selection, Mode=TwoWay}" />
+                                <Border HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        Margin="12"
+                                        Padding="9,5"
+                                        Background="#CC151A20"
+                                        CornerRadius="99">
+                                    <TextBlock Text="{Binding SelectedGameName}"
+                                               Style="{StaticResource MonoCaptionTextStyle}"
+                                               Foreground="{StaticResource PrimaryTextBrush}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Padding="26"
+                                Background="{StaticResource SurfaceBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Visibility="{Binding HasCaptureError, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="430">
+                                <TextBlock Text="Game detected, but the preview is unavailable."
+                                           HorizontalAlignment="Center"
+                                           Style="{StaticResource CardValueTextStyle}" />
+                                <TextBlock Margin="0,8,0,0"
+                                           Text="{Binding CaptureStatusMessage}"
+                                           TextAlignment="Center"
+                                           Style="{StaticResource BodyTextStyle}" />
+                                <Button Margin="0,16,0,0"
+                                        Content="Try Again"
+                                        Command="{Binding TryAgainCommand}"
+                                        Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
                     <TextBlock Margin="0,8,0,0"
-                               Text="Start ETS2 or ATS, then return here to select the GPS area. TruckNav does not draw a fake preview when the real game image is unavailable."
-                               Style="{StaticResource BodyTextStyle}" />
+                               Text="Actual captured game pixels - TruckNav does not generate a map."
+                               Style="{StaticResource MonoCaptionTextStyle}" />
+                    <TextBlock Margin="0,5,0,0"
+                               Text="{Binding CaptureStatusMessage}"
+                               Style="{StaticResource CaptionTextStyle}" />
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Reset"
+                                Command="{Binding ResetSelectionCommand}"
+                                Style="{StaticResource TruckNavButtonStyle}" />
+                        <Button Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Content="Fit Standard GPS"
+                                Command="{Binding FitStandardGpsCommand}"
+                                Style="{StaticResource TruckNavButtonStyle}" />
+                        <StackPanel Grid.Column="2" Margin="18,0" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <ComboBox Width="220"
+                                      ItemsSource="{Binding CaptureSources}"
+                                      SelectedItem="{Binding SelectedSource}"
+                                      DisplayMemberPath="DisplayName"
+                                      Background="{StaticResource Surface2Brush}"
+                                      Foreground="{StaticResource PrimaryTextBrush}" />
+                            <Button Margin="8,0,0,0"
+                                    Content="Apply Source"
+                                    Command="{Binding ApplySourceCommand}"
+                                    Style="{StaticResource TruckNavGhostButtonStyle}" />
+                        </StackPanel>
+                        <Button Grid.Column="3"
+                                Content="Preview"
+                                Command="{Binding PreviewSelectionCommand}"
+                                Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                    </Grid>
                 </StackPanel>
-            </Border>
 
-            <TextBlock Margin="0,18,0,8"
-                       Text="3 PREVIEW"
-                       Style="{StaticResource SectionLabelTextStyle}" />
-            <Border Style="{StaticResource TruckNavCardStyle}">
-                <TextBlock Text="Preview appears here after a live game capture is available."
-                           Style="{StaticResource BodyTextStyle}" />
-            </Border>
-
-            <TextBlock Margin="0,18,0,8"
-                       Text="4 SAVE"
-                       Style="{StaticResource SectionLabelTextStyle}" />
-            <Border Style="{StaticResource TruckNavCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="No GPS area is ready to save yet."
+                <StackPanel Visibility="{Binding IsStepThree, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="3  PREVIEW" Style="{StaticResource SectionLabelTextStyle}" />
+                    <TextBlock Margin="0,5,0,12"
+                               Text="This is the real selected crop. Orientation changes presentation only; the crop stays unchanged."
                                Style="{StaticResource BodyTextStyle}" />
-                    <Button Margin="0,12,0,0"
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="42" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Height="270" Style="{StaticResource TruckNavCardStyle}">
+                            <Grid>
+                                <Image Source="{Binding CropPreview}" Stretch="Uniform" />
+                                <TextBlock Text="SELECTED GPS CROP"
+                                           Margin="0,0,0,4"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Bottom"
+                                           Style="{StaticResource MonoCaptionTextStyle}" />
+                            </Grid>
+                        </Border>
+                        <TextBlock Grid.Column="1"
+                                   Text="&#xE72A;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   Foreground="{StaticResource FaintTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                        <Border Grid.Column="2"
+                                Width="{Binding DevicePreviewWidth}"
+                                Height="{Binding DevicePreviewHeight}"
+                                Padding="8"
+                                Background="#090B0E"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="4"
+                                CornerRadius="18">
+                            <Border Background="Black" CornerRadius="11" ClipToBounds="True">
+                                <Image Source="{Binding CropPreview}" Stretch="{Binding PreviewStretch}" />
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <Grid Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Portrait"
+                                    Command="{Binding SetOrientationCommand}"
+                                    CommandParameter="{x:Static enums:DisplayOrientation.Portrait}"
+                                    Style="{StaticResource TruckNavButtonStyle}" />
+                            <Button Margin="8,0,0,0"
+                                    Content="Landscape"
+                                    Command="{Binding SetOrientationCommand}"
+                                    CommandParameter="{x:Static enums:DisplayOrientation.Landscape}"
+                                    Style="{StaticResource TruckNavButtonStyle}" />
+                            <Button Margin="16,0,0,0"
+                                    Content="{Binding DisplayFitLabel}"
+                                    Command="{Binding ToggleDisplayFitCommand}"
+                                    Style="{StaticResource TruckNavButtonStyle}" />
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right"
+                                Content="Continue"
+                                Command="{Binding ContinueToSaveCommand}"
+                                Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel HorizontalAlignment="Center"
+                            Width="430"
+                            Visibility="{Binding IsStepFour, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Border Width="48"
+                            Height="48"
+                            Background="#193ECF8E"
+                            BorderBrush="{StaticResource SuccessBrush}"
+                            BorderThickness="1"
+                            CornerRadius="14">
+                        <TextBlock Text="&#xE73E;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="20"
+                                   Foreground="{StaticResource SuccessBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Margin="0,12,0,0"
+                               Text="GPS Area Ready"
+                               TextAlignment="Center"
+                               Style="{StaticResource PageHeadingTextStyle}" />
+                    <Border Margin="0,16,0,0" Style="{StaticResource TruckNavCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Height="72" Background="Black" CornerRadius="7" ClipToBounds="True">
+                                <Image Source="{Binding CropPreview}" Stretch="Uniform" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedGameName}" Style="{StaticResource CardValueTextStyle}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding SelectedSource.DisplayName}"
+                                           Style="{StaticResource CaptionTextStyle}" />
+                                <TextBlock Margin="0,3,0,0"
+                                           Text="{Binding ReferenceResolution, StringFormat=Reference resolution: {0}}"
+                                           Style="{StaticResource MonoCaptionTextStyle}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <Button Margin="0,18,0,0"
                             Content="Save GPS Area"
-                            IsEnabled="False"
+                            Command="{Binding SaveCommand}"
                             Style="{StaticResource TruckNavPrimaryButtonStyle}" />
                 </StackPanel>
-            </Border>
-        </StackPanel>
-    </ScrollViewer>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

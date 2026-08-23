@@ -5,7 +5,7 @@
 - manifest version: `1`
 - protocol version and app version remain separate
 
-Phase 2 peers expose:
+Current TruckNav peers expose:
 
 - `protocolVersion`
 - `appVersion`
@@ -41,7 +41,7 @@ The normal UI does not show raw IP addresses.
 
 ## HTTP Surface
 
-Phase 2 Connector endpoints:
+Current Connector endpoints:
 
 - `GET /health`
 - `GET /info`
@@ -82,7 +82,7 @@ If invalid, Windows returns a typed `error` and closes the socket.
 
 ## Validation Rules
 
-Phase 2 validates:
+Current validation covers:
 
 - JSON syntax
 - required `type`
@@ -95,7 +95,7 @@ Phase 2 validates:
 
 ## Connection Health
 
-Implemented Phase 2 health messages:
+Implemented health messages:
 
 - `ping`
 - `pong`
@@ -104,7 +104,7 @@ Android sends lightweight pings on an interval.
 
 Weak-connection UI no longer flips on a single slow sample.
 
-Temporary Phase 2 thresholds now live in code as explicit constants:
+Current health thresholds live in code as explicit constants:
 
 - ping interval: `10s`
 - weak RTT threshold: `1200ms`
@@ -133,3 +133,57 @@ Typed errors currently exercised in code and tests:
 - `unsupported_message_type`
 - `message_too_large`
 - `busy`
+
+## Game State Sync
+
+Phase 3 adds product-level game detection for:
+
+- Euro Truck Simulator 2 as `ets2`
+- American Truck Simulator as `ats`
+
+Windows detects supported games independently of whether a mobile device is connected. The current state is stored centrally, updates the Windows UI, and is synchronized to Android over the existing WebSocket session.
+
+After a successful handshake the sequence is:
+
+1. Android sends `hello`
+2. Windows replies with `hello_ack`
+3. Windows immediately sends the current `game_state`
+
+Example:
+
+```json
+{
+  "type": "game_state",
+  "games": [
+    {
+      "game": "ets2",
+      "running": true
+    },
+    {
+      "game": "ats",
+      "running": false
+    }
+  ]
+}
+```
+
+Rules:
+
+- every `game_state` message includes both supported games
+- Android receives only product-level running state
+- process IDs, window handles, titles, and capture details stay on Windows only
+- Windows sends updated `game_state` only when the detected state actually changes
+
+## Manual Refresh
+
+Android may request a fresh snapshot with:
+
+```json
+{
+  "type": "game_state_request"
+}
+```
+
+Windows replies with the current `game_state`.
+
+Normal operation remains event-driven; `game_state_request` is only a manual recovery/check action.

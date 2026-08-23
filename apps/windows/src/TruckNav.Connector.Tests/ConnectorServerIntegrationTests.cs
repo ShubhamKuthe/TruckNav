@@ -62,6 +62,9 @@ public sealed class ConnectorServerIntegrationTests
         Assert.True(helloAckPayload.Contains("hello_ack", StringComparison.Ordinal), helloAckPayload);
         Assert.True(helloAckPayload.Contains("ROCK", StringComparison.Ordinal), helloAckPayload);
 
+        var gameState = ProtocolSerializer.Deserialize<GameStateMessage>(await ReceiveTextAsync(socket));
+        AssertGameState(gameState, ets2Running: false, atsRunning: false);
+
         await SendTextAsync(socket, ProtocolSerializer.Serialize(new PingMessage()));
         var pongPayload = await ReceiveTextAsync(socket);
 
@@ -146,6 +149,8 @@ public sealed class ConnectorServerIntegrationTests
         var helloAckPayload = await ReceiveTextAsync(socket);
 
         Assert.True(helloAckPayload.Contains("hello_ack", StringComparison.Ordinal), helloAckPayload);
+        var gameState = ProtocolSerializer.Deserialize<GameStateMessage>(await ReceiveTextAsync(socket));
+        AssertGameState(gameState, ets2Running: false, atsRunning: false);
     }
 
     [Fact]
@@ -155,12 +160,75 @@ public sealed class ConnectorServerIntegrationTests
         using var firstSocket = await context.ConnectWebSocketAsync();
         await SendTextAsync(firstSocket, BuildHelloJson(deviceName: "HEN"));
         _ = await ReceiveTextAsync(firstSocket);
+        _ = await ReceiveTextAsync(firstSocket);
 
         using var secondSocket = await context.ConnectWebSocketAsync();
         await SendTextAsync(secondSocket, BuildHelloJson(deviceId: Guid.NewGuid().ToString("D"), deviceName: "WREN"));
         var error = ProtocolSerializer.Deserialize<ErrorMessage>(await ReceiveTextAsync(secondSocket));
 
         Assert.Equal("busy", error.Code);
+    }
+
+    [Fact]
+    public async Task WebSocketHandshake_ShouldSendCurrentGameStateImmediately()
+    {
+        await using var context = await TestServerContext.StartAsync();
+        context.SessionStore.UpdateGameDetection(CreateGameDetectionSnapshot(GameType.EuroTruckSimulator2));
+
+        using var socket = await context.ConnectWebSocketAsync();
+        await SendTextAsync(socket, BuildHelloJson());
+
+        _ = await ReceiveTextAsync(socket);
+        var gameState = ProtocolSerializer.Deserialize<GameStateMessage>(await ReceiveTextAsync(socket));
+
+        AssertGameState(gameState, ets2Running: true, atsRunning: false);
+    }
+
+    [Fact]
+    public async Task GameDetectionTransition_ShouldBroadcastUpdatedGameStateToConnectedMobile()
+    {
+        await using var context = await TestServerContext.StartAsync();
+        using var socket = await context.ConnectWebSocketAsync();
+
+        await SendTextAsync(socket, BuildHelloJson());
+        _ = await ReceiveTextAsync(socket);
+        _ = await ReceiveTextAsync(socket);
+
+        context.SessionStore.UpdateGameDetection(CreateGameDetectionSnapshot(GameType.AmericanTruckSimulator));
+
+        var gameState = ProtocolSerializer.Deserialize<GameStateMessage>(await ReceiveTextAsync(socket));
+        AssertGameState(gameState, ets2Running: false, atsRunning: true);
+    }
+
+    [Fact]
+    public async Task GameStateRequest_ShouldReturnCurrentGameState()
+    {
+        await using var context = await TestServerContext.StartAsync();
+        using var socket = await context.ConnectWebSocketAsync();
+
+        await SendTextAsync(socket, BuildHelloJson());
+        _ = await ReceiveTextAsync(socket);
+        _ = await ReceiveTextAsync(socket);
+
+        context.SessionStore.UpdateGameDetection(CreateGameDetectionSnapshot(GameType.EuroTruckSimulator2));
+        _ = await ReceiveTextAsync(socket);
+
+        await SendTextAsync(socket, ProtocolSerializer.Serialize(new GameStateRequestMessage()));
+
+        var gameState = ProtocolSerializer.Deserialize<GameStateMessage>(await ReceiveTextAsync(socket));
+        AssertGameState(gameState, ets2Running: true, atsRunning: false);
+    }
+
+    [Fact]
+    public async Task UpdatingGameDetectionWithoutConnectedMobile_ShouldNotThrow()
+    {
+        await using var context = await TestServerContext.StartAsync();
+
+        var exception = Record.Exception(() =>
+            context.SessionStore.UpdateGameDetection(CreateGameDetectionSnapshot(GameType.EuroTruckSimulator2)));
+
+        Assert.Null(exception);
+        Assert.True(context.SessionStore.Snapshot.GameDetection.IsRunning(GameType.EuroTruckSimulator2));
     }
 
     private static string BuildHelloJson(
@@ -200,6 +268,48 @@ public sealed class ConnectorServerIntegrationTests
                 return Encoding.UTF8.GetString(stream.ToArray());
             }
         }
+    }
+
+    private static void AssertGameState(
+        GameStateMessage message,
+        bool ets2Running,
+        bool atsRunning)
+    {
+        Assert.Collection(
+            message.Games,
+            game =>
+            {
+                Assert.Equal("ets2", game.Game);
+                Assert.Equal(ets2Running, game.Running);
+            },
+            game =>
+            {
+                Assert.Equal("ats", game.Game);
+                Assert.Equal(atsRunning, game.Running);
+            });
+    }
+
+    private static Core.Models.GameDetectionSnapshot CreateGameDetectionSnapshot(GameType gameType)
+    {
+        var processName = gameType == GameType.EuroTruckSimulator2
+            ? "eurotrucks2.exe"
+            : "amtrucks.exe";
+        var windowTitle = gameType == GameType.EuroTruckSimulator2
+            ? "Euro Truck Simulator 2"
+            : "American Truck Simulator";
+
+        return new Core.Models.GameDetectionSnapshot(
+            new[]
+            {
+                new Core.Models.RunningGameInfo(
+                    gameType,
+                    processName,
+                    101,
+                    99,
+                    windowTitle,
+                    ProcessRunning: true,
+                    WindowAvailable: true)
+            });
     }
 
     private static string? GetReachableLanIPv4Address()

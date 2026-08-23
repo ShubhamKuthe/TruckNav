@@ -48,8 +48,8 @@ class MulticastLanPairingService implements LanPairingService {
   static const Duration _presenceTtl = Duration(seconds: 8);
 
   MulticastLanPairingService({
-    required LocalNetworkPermissionService localNetworkPermissionService,
-  }) : _localNetworkPermissionService = localNetworkPermissionService;
+    required this._localNetworkPermissionService,
+  });
 
   final LocalNetworkPermissionService _localNetworkPermissionService;
   final StreamController<PairRequest> _pairRequestsController =

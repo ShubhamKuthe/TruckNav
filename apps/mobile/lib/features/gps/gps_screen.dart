@@ -112,6 +112,9 @@ class _GpsScreenState extends ConsumerState<GpsScreen> {
     final session = ref.watch(sessionControllerProvider);
     final controller = ref.read(sessionControllerProvider.notifier);
     final theme = Theme.of(context);
+    final selectedGameMissing =
+        session.selectedGame != TruckGame.none &&
+        !session.supportedGames.isRunning(session.selectedGame);
 
     return Scaffold(
       body: GestureDetector(
@@ -137,6 +140,18 @@ class _GpsScreenState extends ConsumerState<GpsScreen> {
                 padding: const EdgeInsets.all(18),
                 child: Column(
                   children: <Widget>[
+                    if (selectedGameMissing) ...<Widget>[
+                      _GameNotDetectedBanner(
+                        game: session.selectedGame,
+                        connectorName: session.selectedConnector?.name ?? 'ROCK',
+                        onCheckAgain: controller.requestGameStateRefresh,
+                        onChooseAnotherGame: () {
+                          controller.returnToGameSelection();
+                          context.go('/connector');
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     const Expanded(child: GpsVideoSurfacePlaceholder()),
                     const SizedBox(height: 14),
                     if (session.lastCommandLabel case final command?)
@@ -312,6 +327,77 @@ class _WeakConnectionBanner extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: TruckNavPalette.textPrimary,
             ),
+      ),
+    );
+  }
+}
+
+class _GameNotDetectedBanner extends StatelessWidget {
+  const _GameNotDetectedBanner({
+    required this.game,
+    required this.connectorName,
+    required this.onCheckAgain,
+    required this.onChooseAnotherGame,
+  });
+
+  final TruckGame game;
+  final String connectorName;
+  final Future<void> Function() onCheckAgain;
+  final VoidCallback onChooseAnotherGame;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: TruckNavPalette.surface.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: TruckNavPalette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Game not detected',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: TruckNavPalette.accent,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Start ${gameLabel(game)} on $connectorName to continue.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: TruckNavPalette.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: <Widget>[
+              FilledButton(
+                onPressed: () {
+                  onCheckAgain();
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: TruckNavPalette.accent,
+                  foregroundColor: TruckNavPalette.background,
+                ),
+                child: const Text('Check Again'),
+              ),
+              OutlinedButton(
+                onPressed: onChooseAnotherGame,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: TruckNavPalette.border),
+                  foregroundColor: TruckNavPalette.textPrimary,
+                ),
+                child: const Text('Choose Another Game'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

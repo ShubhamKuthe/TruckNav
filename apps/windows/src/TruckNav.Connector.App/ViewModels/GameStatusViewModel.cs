@@ -1,3 +1,5 @@
+using System.Windows.Input;
+
 namespace TruckNav.Connector.App.ViewModels;
 
 public sealed class GameStatusViewModel
@@ -11,6 +13,8 @@ public sealed class GameStatusViewModel
     public string ActionText { get; init; } = "Configure GPS";
 
     public bool IsActionEnabled { get; init; }
+
+    public ICommand? ActionCommand { get; init; }
 
     public string RunningLabel => IsRunning ? "Running" : "Not running";
 

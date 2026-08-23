@@ -7,4 +7,9 @@ public sealed record CaptureSource(
     string DisplayName,
     CaptureSourceType SourceType,
     int Width,
-    int Height);
+    int Height,
+    nint NativeHandle = 0,
+    GameType GameType = GameType.None,
+    int Left = 0,
+    int Top = 0,
+    bool IsPrimary = false);

@@ -61,6 +61,7 @@
                                                Style="{StaticResource CaptionTextStyle}" />
                                     <Button Margin="0,8,0,0"
                                             Content="{Binding ActionText}"
+                                            Command="{Binding ActionCommand}"
                                             IsEnabled="{Binding IsActionEnabled}"
                                             Style="{StaticResource TruckNavButtonStyle}" />
                                 </StackPanel>

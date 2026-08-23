@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:trucknav_mobile/features/session/connector_client.dart';
-import 'package:trucknav_mobile/features/session/connector_discovery_service.dart';
 import 'package:trucknav_mobile/features/session/mdns_connector_discovery_service.dart';
 import 'package:trucknav_mobile/features/session/session_preferences_store.dart';
 import 'package:trucknav_mobile/features/session/session_state.dart';
@@ -138,6 +137,7 @@ class FakeConnectorClient implements ConnectorClient {
   final List<(LocalDeviceIdentity, ConnectorSummary)> connectCalls =
       <(LocalDeviceIdentity, ConnectorSummary)>[];
   final List<bool> disconnectCalls = <bool>[];
+  int requestGameStateCount = 0;
 
   void enqueueConnectResult(ConnectorConnectResult result) {
     _connectResults.add(result);
@@ -151,6 +151,10 @@ class FakeConnectorClient implements ConnectorClient {
 
   void emitWeakConnection(bool isWeak) {
     _events.add(ConnectorClientWeakConnectionChanged(isWeak));
+  }
+
+  void emitGameState(SupportedGameState gameState) {
+    _events.add(ConnectorClientGameStateUpdated(gameState));
   }
 
   @override
@@ -169,6 +173,11 @@ class FakeConnectorClient implements ConnectorClient {
   @override
   Future<void> disconnect({bool intentional = true}) async {
     disconnectCalls.add(intentional);
+  }
+
+  @override
+  Future<void> requestGameState() async {
+    requestGameStateCount += 1;
   }
 
   @override

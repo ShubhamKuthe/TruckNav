@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TruckNav Connector — Windows Companion UI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0D1014;
+  --surface:#151A20;
+  --surface2:#1B222A;
+  --surface3:#222B35;
+  --sidebar:#10141A;
+  --border:rgba(255,255,255,0.07);
+  --border-strong:rgba(255,255,255,0.12);
+  --accent:#F59E32;
+  --accent-dim:#C97A22;
+  --accent-glow:rgba(245,158,50,0.35);
+  --green:#3ECF8E;
+  --blue:#4FA8E0;
+  --red:#E5484D;
+  --text:#F3EFE8;
+  --text-dim:#93A0AF;
+  --text-faint:#57626F;
+  --sans:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{background:#08090B; font-family:var(--sans); color:var(--text);}
+
+/* ---------- portfolio canvas ---------- */
+.canvas-header{ padding:70px 24px 30px; text-align:center; }
+.canvas-header .eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:14px;
+}
+.canvas-header h1{ font-size:38px; font-weight:800; letter-spacing:-0.02em; }
+.canvas-header p{ color:var(--text-dim); margin-top:10px; font-size:15px; max-width:620px; margin-left:auto; margin-right:auto; line-height:1.6; }
+.group-label{
+  width:100%; text-align:center; margin:70px 0 -6px;
+  font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-faint);
+}
+.group-label span{ color:var(--accent); }
+.group-sub{ text-align:center; color:var(--text-faint); font-size:12px; margin-top:6px; }
+
+.gallery{ display:flex; flex-wrap:wrap; gap:60px; justify-content:center; padding:46px 24px 60px; max-width:1680px; margin:0 auto; }
+.frame-block{ display:flex; flex-direction:column; align-items:center; }
+.frame-caption{ font-family:var(--mono); font-size:11.5px; color:var(--text-dim); margin-top:16px; letter-spacing:.03em; text-align:center; max-width:420px; line-height:1.6; }
+.frame-caption b{ color:var(--text); font-weight:600; }
+
+/* ---------- generic UI atoms (shared with Android app) ---------- */
+.icon{ stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.btn{ display:flex; align-items:center; justify-content:center; gap:8px; font-family:var(--sans); font-weight:600; font-size:13.5px; border:none; cursor:pointer; border-radius:11px; padding:11px 18px; letter-spacing:.01em; }
+.btn-primary{ background:linear-gradient(180deg,#FFAE55,var(--accent)); color:#20140a; box-shadow:0 8px 20px -6px var(--accent-glow); }
+.btn-secondary{ background:var(--surface3); color:var(--text); border:1px solid var(--border-strong); }
+.btn-ghost{ background:transparent; color:var(--text-dim); border:1px solid var(--border); }
+.btn-danger{ background:rgba(229,72,77,0.12); color:var(--red); border:1px solid rgba(229,72,77,0.35); }
+.btn-block{ width:100%; }
+.btn-sm{ padding:8px 14px; font-size:12px; border-radius:9px; }
+
+.field{ background:var(--surface2); border:1px solid var(--border-strong); border-radius:12px; padding:13px 14px; font-family:var(--mono); font-size:17px; letter-spacing:.04em; color:var(--text); }
+.field-label{ font-size:12px; color:var(--text-dim); margin-bottom:7px; font-weight:500; }
+.field-helper{ font-size:11px; color:var(--text-faint); margin-top:7px; line-height:1.5; }
+
+.pill{ display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10.5px; letter-spacing:.03em; padding:5px 10px; border-radius:20px; background:var(--surface3); color:var(--text-dim); border:1px solid var(--border); }
+.dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.dot-green{ background:var(--green); box-shadow:0 0 8px var(--green); }
+.dot-amber{ background:var(--accent); box-shadow:0 0 8px var(--accent); }
+.dot-red{ background:var(--red); box-shadow:0 0 8px var(--red); }
+.dot-grey{ background:var(--text-faint); }
+
+.card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; }
+.card-title{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; }
+.card-title svg{ width:14px; height:14px; }
+
+.toggle{ width:38px; height:22px; border-radius:11px; background:var(--surface3); position:relative; flex-shrink:0; border:1px solid var(--border-strong); }
+.toggle.on{ background:var(--accent); border-color:transparent; }
+.toggle .knob{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; }
+.toggle.on .knob{ left:18px; }
+
+.section-title{ font-size:17px; font-weight:700; letter-spacing:-0.01em; }
+.section-sub{ font-size:12px; color:var(--text-dim); margin-top:3px; line-height:1.5; }
+
+.spin{ animation:spin 1.6s linear infinite; } @keyframes spin{ to{ transform:rotate(360deg); } }
+.pulse{ animation:pulse 1.8s ease-in-out infinite; } @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+/* ---------- Windows chrome ---------- */
+.winframe{
+  width:800px; border-radius:11px; overflow:hidden; background:var(--bg);
+  box-shadow:0 40px 80px -25px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.06);
+  display:flex; flex-direction:column;
+}
+.winframe.compact{ width:560px; }
+.winframe.narrow{ width:420px; }
+
+.wtitlebar{
+  height:38px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:0 0 0 14px; background:var(--surface); border-bottom:1px solid var(--border);
+}
+.wtitlebar .wtitle{ display:flex; align-items:center; gap:9px; font-size:12px; font-weight:600; color:var(--text-dim); letter-spacing:.01em; }
+.wtitlebar .wtitle svg{ width:15px; height:15px; color:var(--accent); }
+.wcontrols{ display:flex; height:100%; }
+.wcontrols .wbtn{ width:44px; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-faint); }
+.wcontrols .wbtn svg{ width:11px; height:11px; }
+.wcontrols .wclose{ color:var(--text-faint); }
+
+.wbody{ flex:1; display:flex; min-height:0; }
+.wsidebar{ width:172px; flex-shrink:0; background:var(--sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:14px 8px; }
+.wnav-item{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; font-size:12.5px; font-weight:500; color:var(--text-dim); margin-bottom:2px; }
+.wnav-item svg{ width:15px; height:15px; flex-shrink:0; }
+.wnav-item.active{ background:var(--surface3); color:var(--text); }
+.wnav-item.active svg{ color:var(--accent); }
+.wsidebar-foot{ margin-top:auto; padding:10px 10px 4px; border-top:1px solid var(--border); }
+.wsidebar-foot .v{ font-family:var(--mono); font-size:10px; color:var(--text-faint); letter-spacing:.02em; }
+.wsidebar-foot .status{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-dim); margin-top:7px; font-family:var(--mono); }
+
+.wcontent{ flex:1; background:var(--bg); padding:22px 24px; overflow:hidden; min-width:0; display:flex; flex-direction:column; }
+.wcontent.scroll{ overflow-y:auto; }
+
+.wpc-badge{ display:flex; align-items:center; gap:8px; }
+.wpc-badge .name{ font-family:var(--mono); font-weight:700; font-size:13px; letter-spacing:.02em; }
+
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* taskbar mock, for tray screen */
+.taskbar{ height:46px; background:rgba(15,18,23,0.92); border-top:1px solid var(--border-strong); backdrop-filter:blur(6px); display:flex; align-items:center; padding:0 12px; gap:14px; }
+.taskbar .tray-icons{ margin-left:auto; display:flex; align-items:center; gap:12px; color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="canvas-header">
+  <div class="eyebrow">Windows Companion Software · UI Design</div>
+  <h1>TruckNav Connector</h1>
+  <p>The PC half of TruckNav — a quiet background utility that finds the phone on the local network, captures the GPS area out of Euro Truck Simulator&nbsp;2 or American Truck Simulator, and streams it across. Same dark, amber-accented language as the Android app, rebuilt as a compact native Windows tool — not a stretched phone screen.</p>
+</div>
+
+<!-- ============================================================ 01 — FIRST-TIME SETUP ============================================================ -->
+<div class="group-label"><span>01</span> — First-Time Setup</div>
+<div class="group-sub">Two screens, then the app disappears into the tray for good</div>
+<div class="gallery">
+
+  <!-- NAME THIS PC -->
+  <div class="frame-block">
+    <div class="winframe compact">
+      <div class="wtitlebar">
+        <div class="wtitle">
+          <svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>
+          TruckNav Connector
+        </div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:40px 46px; justify-content:center; align-items:center; text-align:center;">
+        <div style="width:52px; height:52px; border-radius:14px; background:linear-gradient(160deg,var(--surface3),var(--surface2)); border:1px solid var(--border-strong); display:flex; align-items:center; justify-content:center; margin-bottom:22px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" class="icon" style="color:var(--accent)"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>
+        </div>
+        <div style="font-size:21px; font-weight:800; letter-spacing:-0.02em;">Welcome to TruckNav Connector</div>
+        <div style="color:var(--text-dim); font-size:13px; margin-top:10px; line-height:1.55; max-width:340px;">Turn your Android phone or tablet into a wireless ETS2/ATS GPS.</div>
+
+        <div style="margin-top:30px; width:100%; max-width:300px; text-align:left;">
+          <div class="field-label">Name this PC</div>
+          <div class="field" style="display:flex; align-items:center; justify-content:space-between; font-size:18px;">
+            <span>ROCK</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" class="icon" style="color:var(--text-faint)"><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+          </div>
+          <div class="field-helper">This name will be visible to TruckNav devices on your local network.</div>
+        </div>
+
+        <button class="btn btn-primary" style="margin-top:26px; padding-left:34px; padding-right:34px;">Continue</button>
+        <div style="display:flex; align-items:center; gap:6px; margin-top:16px; color:var(--text-faint); font-size:10.5px; font-family:var(--mono);">
+          <svg width="12" height="12" viewBox="0 0 24 24" class="icon"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+          LOCAL NETWORK ONLY
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>01 · Name this PC</b><br>Same onboarding language as the Android app — no accounts, no pairing codes, just a friendly name.</div>
+  </div>
+
+  <!-- ALLOW LOCAL CONNECTIONS -->
+  <div class="frame-block">
+    <div class="winframe compact">
+      <div class="wtitlebar">
+        <div class="wtitle">
+          <svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>
+          TruckNav Connector
+        </div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:40px 46px; justify-content:center; align-items:center; text-align:center;">
+        <div style="width:60px; height:60px; border-radius:18px; background:var(--surface2); border:1px solid var(--border-strong); display:flex; align-items:center; justify-content:center; margin-bottom:22px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" class="icon" style="color:var(--accent)"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+        </div>
+        <div style="font-weight:800; font-size:18px;">Allow local connections</div>
+        <div style="color:var(--text-dim); font-size:13px; margin-top:12px; line-height:1.6; max-width:320px;">TruckNav Connector needs access to your local network so your phone or tablet can find this PC.</div>
+        <div style="color:var(--text-faint); font-size:11.5px; margin-top:8px; line-height:1.6;">TruckNav does not require an internet connection.</div>
+        <button class="btn btn-primary" style="margin-top:26px; padding-left:34px; padding-right:34px;">Continue</button>
+      </div>
+    </div>
+    <div class="frame-caption"><b>02 · Local network permission</b><br>Plain language before the Windows Firewall prompt fires — no ports, no protocols, no mDNS.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 02 — HOME DASHBOARD ============================================================ -->
+<div class="group-label"><span>02</span> — Home Dashboard</div>
+<div class="group-sub">The one screen a user actually looks at. Four cards, always the same shape.</div>
+<div class="gallery">
+
+  <!-- HOME: WAITING STATE -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>Settings</div>
+          <div class="wsidebar-foot">
+            <div class="v">v1.0.0</div>
+            <div class="status"><span class="dot dot-green"></span>Ready</div>
+          </div>
+        </div>
+        <div class="wcontent">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+            <div>
+              <div style="font-size:17px; font-weight:700;">TruckNav Connector</div>
+              <div class="wpc-badge" style="margin-top:4px;"><span class="dot dot-green"></span><span class="name" style="color:var(--text-dim);">ROCK</span><span style="color:var(--text-faint); font-size:11px;">· Ready</span></div>
+            </div>
+          </div>
+          <div class="grid2" style="flex:1;">
+            <div class="card">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>Mobile Device</div>
+              <div style="margin-top:14px; font-size:14px; font-weight:600;">Waiting for a device</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:4px; line-height:1.5;">Open TruckNav on your phone or tablet.</div>
+              <div class="pill" style="margin-top:12px;"><span class="dot dot-amber pulse"></span>Ready for connection</div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:12px;">View Devices</button>
+            </div>
+            <div class="card">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Game</div>
+              <div style="margin-top:14px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px;"><span class="dot dot-grey"></span>No supported game running</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px; line-height:1.5;">Start Euro Truck Simulator&nbsp;2 or American Truck Simulator.</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,50,.35);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--accent);">
+                <svg width="15" height="15" viewBox="0 0 24 24" class="icon"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/></svg>
+                GPS area not configured
+              </div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px; line-height:1.5;">Select the navigation area you want to send to TruckNav.</div>
+              <button class="btn btn-primary btn-sm" style="margin-top:12px;">Configure GPS Area</button>
+            </div>
+            <div class="card">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M4 12a8 8 0 0116 0M4 12v6a2 2 0 002 2h1v-6H4zm16 0v6a2 2 0 01-2 2h-1v-6h3z"/></svg>Stream</div>
+              <div style="margin-top:14px; font-size:14px; font-weight:600; color:var(--text-dim);">Waiting for mobile device</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px; line-height:1.5;">Streaming starts automatically once everything is ready.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>03 · Home — waiting</b><br>Nothing configured yet. The GPS card is the only one that ever asks for action — it stays amber and prominent until solved.</div>
+  </div>
+
+  <!-- HOME: PERFECT STATE -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>Settings</div>
+          <div class="wsidebar-foot">
+            <div class="v">v1.0.0</div>
+            <div class="status"><span class="dot dot-green"></span>Ready</div>
+          </div>
+        </div>
+        <div class="wcontent">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+            <div>
+              <div style="font-size:17px; font-weight:700;">TruckNav Connector</div>
+              <div class="wpc-badge" style="margin-top:4px;"><span class="dot dot-green"></span><span class="name" style="color:var(--text-dim);">ROCK</span><span style="color:var(--text-faint); font-size:11px;">· Connector Ready</span></div>
+            </div>
+          </div>
+          <div class="grid2" style="flex:1;">
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>Mobile Device</div>
+              <div style="margin-top:14px; display:flex; align-items:center; justify-content:space-between;">
+                <div>
+                  <div style="font-size:15px; font-weight:700; font-family:var(--mono);">HEN</div>
+                  <div style="color:var(--text-faint); font-size:11px; margin-top:2px;">Android Tablet · Local connection</div>
+                </div>
+                <div class="pill" style="border-color:rgba(62,207,142,.35); color:var(--green);"><span class="dot dot-green"></span>Connected</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" style="margin-top:12px;">Disconnect</button>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Game</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;"><span class="dot dot-green"></span>Euro Truck Simulator 2</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px;">Running</div>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" class="icon" style="color:var(--green)"><path d="M20 6L9 17l-5-5"/></svg>
+                Euro Truck Simulator 2
+              </div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:4px;">GPS area configured</div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:12px;">Edit</button>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M4 12a8 8 0 0116 0M4 12v6a2 2 0 002 2h1v-6H4zm16 0v6a2 2 0 01-2 2h-1v-6h3z"/></svg>Stream</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;"><span class="dot dot-green pulse"></span>Streaming to HEN</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:4px;">ETS2 GPS</div>
+              <button class="btn btn-ghost btn-sm" style="margin-top:12px;">Stop Stream</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>04 · Home — streaming</b><br>Device connected, game running, GPS area saved. Streaming started automatically — no button was needed to get here.</div>
+  </div>
+
+  <!-- HOME: STATE A — GAME CLOSED, MOBILE STILL CONNECTED -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>Settings</div>
+          <div class="wsidebar-foot">
+            <div class="v">v1.0.0</div>
+            <div class="status"><span class="dot dot-green"></span>Ready</div>
+          </div>
+        </div>
+        <div class="wcontent">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+            <div>
+              <div style="font-size:17px; font-weight:700;">TruckNav Connector</div>
+              <div class="wpc-badge" style="margin-top:4px;"><span class="dot dot-green"></span><span class="name" style="color:var(--text-dim);">ROCK</span><span style="color:var(--text-faint); font-size:11px;">· Ready</span></div>
+            </div>
+          </div>
+          <div class="grid2" style="flex:1;">
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>Mobile Device</div>
+              <div style="margin-top:14px; font-size:15px; font-weight:700; font-family:var(--mono);">HEN</div>
+              <div class="pill" style="margin-top:8px; color:var(--green); border-color:rgba(62,207,142,.35);"><span class="dot dot-green"></span>Connected</div>
+            </div>
+            <div class="card">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Game</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;"><span class="dot dot-grey"></span>Euro Truck Simulator 2</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px;">Not running</div>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--green);">
+                <svg width="15" height="15" viewBox="0 0 24 24" class="icon"><path d="M20 6L9 17l-5-5"/></svg>Configured
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M4 12a8 8 0 0116 0M4 12v6a2 2 0 002 2h1v-6H4zm16 0v6a2 2 0 01-2 2h-1v-6h3z"/></svg>Stream</div>
+              <div style="margin-top:14px; font-size:14px; font-weight:600; color:var(--text-dim);">Waiting for game</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px; line-height:1.5;">Streaming will resume automatically when Euro Truck Simulator 2 starts again.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>05a · Home — game closed, mobile still connected</b><br>HEN stays connected even though ETS2 has been closed. The connector never disconnects the phone just because the game exited — streaming picks back up on its own.</div>
+  </div>
+
+  <!-- HOME: STATE B — MOBILE DISCONNECTED -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>Settings</div>
+          <div class="wsidebar-foot">
+            <div class="v">v1.0.0</div>
+            <div class="status"><span class="dot dot-green"></span>Ready</div>
+          </div>
+        </div>
+        <div class="wcontent">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+            <div>
+              <div style="font-size:17px; font-weight:700;">TruckNav Connector</div>
+              <div class="wpc-badge" style="margin-top:4px;"><span class="dot dot-green"></span><span class="name" style="color:var(--text-dim);">ROCK</span><span style="color:var(--text-faint); font-size:11px;">· Ready</span></div>
+            </div>
+          </div>
+          <div class="grid2" style="flex:1;">
+            <div class="card">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>Mobile Device</div>
+              <div style="margin-top:14px; font-size:15px; font-weight:700; font-family:var(--mono);">HEN</div>
+              <div class="pill" style="margin-top:8px; color:var(--accent); border-color:rgba(245,158,50,.35);"><span class="dot dot-amber pulse"></span>Waiting to reconnect…</div>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Game</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;"><span class="dot dot-green"></span>Euro Truck Simulator 2</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px;">Running</div>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--green);">
+                <svg width="15" height="15" viewBox="0 0 24 24" class="icon"><path d="M20 6L9 17l-5-5"/></svg>Configured
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M4 12a8 8 0 0116 0M4 12v6a2 2 0 002 2h1v-6H4zm16 0v6a2 2 0 01-2 2h-1v-6h3z"/></svg>Stream</div>
+              <div style="margin-top:14px; font-size:14px; font-weight:600; color:var(--text-dim);">Waiting for HEN</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px; line-height:1.5;">Streaming will resume automatically when HEN reconnects.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>05b · Home — mobile disconnected</b><br>ETS2 keeps running and GPS stays configured; only the phone has dropped off. A distinct state from 05a — these two never get shown as one contradictory card.</div>
+  </div>
+
+  <!-- HOME: RESOLUTION CHANGE WARNING -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>Settings</div>
+          <div class="wsidebar-foot">
+            <div class="v">v1.0.0</div>
+            <div class="status"><span class="dot dot-green"></span>Ready</div>
+          </div>
+        </div>
+        <div class="wcontent">
+          <div style="display:flex; align-items:center; gap:10px; background:rgba(245,158,50,.08); border:1px solid rgba(245,158,50,.3); border-radius:11px; padding:10px 14px; margin-bottom:14px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" class="icon" style="color:var(--accent); flex-shrink:0;"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/></svg>
+            <div style="flex:1;">
+              <div style="font-size:12.5px; font-weight:600;">GPS area may need adjustment</div>
+              <div style="font-size:11px; color:var(--text-dim); margin-top:1px;">The game resolution has changed since this GPS area was configured.</div>
+            </div>
+            <button class="btn btn-ghost btn-sm">Keep Current</button>
+            <button class="btn btn-secondary btn-sm">Review GPS Area</button>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+            <div>
+              <div style="font-size:17px; font-weight:700;">TruckNav Connector</div>
+              <div class="wpc-badge" style="margin-top:4px;"><span class="dot dot-green"></span><span class="name" style="color:var(--text-dim);">ROCK</span><span style="color:var(--text-faint); font-size:11px;">· Ready</span></div>
+            </div>
+          </div>
+          <div class="grid2" style="flex:1;">
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>Mobile Device</div>
+              <div style="margin-top:14px; font-size:15px; font-weight:700; font-family:var(--mono);">HEN</div>
+              <div class="pill" style="margin-top:8px; color:var(--green); border-color:rgba(62,207,142,.35);"><span class="dot dot-green"></span>Connected</div>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Game</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;"><span class="dot dot-green"></span>Euro Truck Simulator 2</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px;">Running</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,50,.35);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--accent);">
+                <svg width="15" height="15" viewBox="0 0 24 24" class="icon"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/></svg>Configured
+              </div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:6px;">Resolution changed since setup</div>
+            </div>
+            <div class="card" style="border-color:rgba(62,207,142,.3);">
+              <div class="card-title"><svg viewBox="0 0 24 24" class="icon"><path d="M4 12a8 8 0 0116 0M4 12v6a2 2 0 002 2h1v-6H4zm16 0v6a2 2 0 01-2 2h-1v-6h3z"/></svg>Stream</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;"><span class="dot dot-green pulse"></span>Streaming to HEN</div>
+              <div style="color:var(--text-faint); font-size:11.5px; margin-top:4px;">Using the existing crop until reviewed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>05c · Home — resolution changed</b><br>Streaming keeps working with the existing crop. Choosing "Keep Current" dismisses the banner without deleting the saved profile; "Review GPS Area" reopens the wizard at Step 2.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 03 — DEVICES ============================================================ -->
+<div class="group-label"><span>03</span> — Devices</div>
+<div class="gallery">
+
+  <!-- DEVICES LIST -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>Settings</div>
+          <div class="wsidebar-foot">
+            <div class="v">v1.0.0</div>
+            <div class="status"><span class="dot dot-green"></span>Ready</div>
+          </div>
+        </div>
+        <div class="wcontent scroll">
+          <div style="font-size:17px; font-weight:700; margin-bottom:16px;">Devices</div>
+
+          <div style="font-size:11px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;">Connected Devices</div>
+          <div class="card" style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+            <div style="width:38px; height:38px; border-radius:10px; background:var(--surface3); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" class="icon" style="color:var(--accent)"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-family:var(--mono); font-size:13.5px;">HEN</div>
+              <div style="font-size:11px; color:var(--text-faint); margin-top:1px;">Android Tablet · Connected just now</div>
+            </div>
+            <div class="pill" style="color:var(--green); border-color:rgba(62,207,142,.35);"><span class="dot dot-green"></span>Connected</div>
+            <button class="btn btn-ghost btn-sm">Disconnect</button>
+          </div>
+
+          <div style="font-size:11px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;">Nearby Devices</div>
+          <div class="card" style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+            <div style="width:38px; height:38px; border-radius:10px; background:var(--surface3); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-dim);">
+              <svg width="18" height="18" viewBox="0 0 24 24" class="icon"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:13.5px;">PHONE-1</div>
+              <div style="font-size:11px; color:var(--text-faint); margin-top:1px;">Android</div>
+            </div>
+            <div class="pill"><span class="dot dot-amber"></span>Ready</div>
+            <button class="btn btn-primary btn-sm">Connect</button>
+          </div>
+
+          <div style="font-size:11px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:18px 0 8px;">Previous Devices</div>
+          <div class="card" style="display:flex; align-items:center; gap:12px; opacity:.75;">
+            <div style="width:38px; height:38px; border-radius:10px; background:var(--surface3); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-faint);">
+              <svg width="18" height="18" viewBox="0 0 24 24" class="icon"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:13.5px;">DEPOT-TABLET</div>
+              <div style="font-size:11px; color:var(--text-faint); margin-top:1px;">Android Tablet · Last connected yesterday</div>
+            </div>
+            <button class="btn btn-ghost btn-sm">Forget</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>06 · Devices</b><br>Connected, discovered, and previously-seen devices — no IP addresses shown anywhere on this list.</div>
+  </div>
+
+  <!-- INCOMING CONNECTION -->
+  <div class="frame-block">
+    <div class="winframe" style="position:relative;">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody" style="position:relative;">
+        <div class="wsidebar">
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/></svg>Settings</div>
+          <div class="wsidebar-foot"><div class="v">v1.0.0</div><div class="status"><span class="dot dot-green"></span>Ready</div></div>
+        </div>
+        <div class="wcontent" style="position:relative;">
+          <div style="font-size:17px; font-weight:700; margin-bottom:16px; opacity:.3;">Devices</div>
+          <div style="opacity:.25;">
+            <div class="card" style="height:64px;"></div>
+          </div>
+          <div style="position:absolute; inset:0; background:rgba(6,7,9,0.72); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center;">
+            <div class="card" style="width:82%; text-align:center; padding:26px 22px;">
+              <div style="width:48px; height:48px; border-radius:14px; background:var(--surface3); border:1px solid var(--border-strong); display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" class="icon" style="color:var(--accent)"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M12 18h.01"/></svg>
+              </div>
+              <div style="font-weight:700; font-size:15px;">HEN wants to connect</div>
+              <div style="color:var(--text-dim); font-size:12px; margin-top:6px;">Android Tablet · Same local network</div>
+              <div style="display:flex; gap:10px; margin-top:18px;">
+                <button class="btn btn-secondary btn-block">Decline</button>
+                <button class="btn btn-primary btn-block">Accept</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>07 · Incoming connection</b><br>Shown only if manual approval is enabled. With automatic one-click pairing on the same network, the device simply appears as Connected instead.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 04 — GAMES ============================================================ -->
+<div class="group-label"><span>04</span> — Games</div>
+<div class="gallery">
+
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/></svg>Settings</div>
+          <div class="wsidebar-foot"><div class="v">v1.0.0</div><div class="status"><span class="dot dot-green"></span>Ready</div></div>
+        </div>
+        <div class="wcontent">
+          <div style="font-size:17px; font-weight:700; margin-bottom:16px;">Games</div>
+          <div style="display:flex; flex-direction:column; gap:12px; flex:1;">
+            <div class="card" style="display:flex; align-items:center; gap:14px;">
+              <div style="width:44px; height:44px; border-radius:12px; background:var(--surface3); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" class="icon" style="color:var(--green)"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:14.5px;">Euro Truck Simulator 2</div>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:3px; font-size:11.5px; color:var(--text-dim);"><span class="dot dot-green"></span>Running</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px; color:var(--green); font-weight:600; display:flex; align-items:center; gap:5px; justify-content:flex-end;"><svg width="12" height="12" viewBox="0 0 24 24" class="icon"><path d="M20 6L9 17l-5-5"/></svg>Configured</div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:8px;">Configure GPS</button>
+              </div>
+            </div>
+            <div class="card" style="display:flex; align-items:center; gap:14px;">
+              <div style="width:44px; height:44px; border-radius:12px; background:var(--surface3); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-faint);">
+                <svg width="20" height="20" viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:14.5px;">American Truck Simulator</div>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:3px; font-size:11.5px; color:var(--text-faint);"><span class="dot dot-grey"></span>Not running</div>
+              </div>
+              <div style="text-align:right; max-width:150px;">
+                <div style="font-size:11px; color:var(--text-faint); font-weight:600;">Not configured</div>
+                <div style="font-size:10.5px; color:var(--text-faint); margin-top:4px; line-height:1.4;">Start American Truck Simulator to configure its GPS area.</div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:8px; opacity:.4; cursor:not-allowed;" disabled>Configure GPS</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>08 · Games</b><br>Separate GPS capture profiles per game, since ETS2 and ATS place the route advisor slightly differently. Configure GPS is disabled until the game is detected running — the capture step needs a live window to select the region from.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 05 — GPS CAPTURE CONFIGURATION ============================================================ -->
+<div class="group-label"><span>05</span> — GPS Capture Configuration</div>
+<div class="group-sub">The one desktop-only workflow that matters — extremely visual, four short steps</div>
+<div class="gallery">
+
+  <!-- STEP 1 -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>Configure GPS Area</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:26px 30px;">
+        <div style="font-size:18px; font-weight:700;">Configure GPS Area</div>
+        <div class="section-sub">Select the navigation area that should appear on your phone or tablet.</div>
+        <div style="display:flex; align-items:center; gap:6px; margin:18px 0 22px; font-family:var(--mono); font-size:10.5px; color:var(--text-faint);">
+          <span style="color:var(--accent); font-weight:600;">① Choose Game</span><span>—</span>
+          <span>② Select Area</span><span>—</span><span>③ Preview</span><span>—</span><span>④ Save</span>
+        </div>
+        <div style="display:flex; gap:14px; flex:1;">
+          <div class="card" style="flex:1; text-align:center; padding:26px 16px; border-color:rgba(245,158,50,.4); background:rgba(245,158,50,.05);">
+            <div style="width:42px; height:42px; border-radius:12px; background:var(--surface3); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; color:var(--green);">
+              <svg width="20" height="20" viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>
+            </div>
+            <div style="font-weight:700; font-size:13.5px;">Euro Truck Simulator 2</div>
+            <div class="pill" style="margin-top:8px; color:var(--green); border-color:rgba(62,207,142,.35);"><span class="dot dot-green"></span>Running</div>
+            <button class="btn btn-primary btn-block btn-sm" style="margin-top:14px;">Use This Game</button>
+          </div>
+          <div class="card" style="flex:1; text-align:center; padding:26px 16px; opacity:.6;">
+            <div style="width:42px; height:42px; border-radius:12px; background:var(--surface3); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; color:var(--text-faint);">
+              <svg width="20" height="20" viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>
+            </div>
+            <div style="font-weight:700; font-size:13.5px;">American Truck Simulator</div>
+            <div style="font-size:11px; color:var(--text-faint); margin-top:8px; line-height:1.5;">Start ATS to configure its GPS area.</div>
+            <button class="btn btn-secondary btn-block btn-sm" style="margin-top:14px;">Check Again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>09 · Step 1 — choose game</b><br>A running game is highlighted and pre-selected automatically.</div>
+  </div>
+
+  <!-- STEP 2: SELECT AREA -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>Configure GPS Area</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:22px 26px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px; font-family:var(--mono); font-size:10.5px; color:var(--text-faint);">
+          <span>① Choose Game</span><span>—</span><span style="color:var(--accent); font-weight:600;">② Select Area</span><span>—</span><span>③ Preview</span><span>—</span><span>④ Save</span>
+        </div>
+        <div style="font-size:12.5px; color:var(--text-dim); margin-bottom:12px;">Drag and resize the box around the in-game GPS/navigation map.</div>
+        <div style="position:relative; flex:1; border-radius:12px; overflow:hidden; border:1px solid var(--border-strong); background:linear-gradient(160deg,#171c14 0%,#0e1310 60%,#0a0d0b 100%); min-height:270px;">
+          <svg width="100%" height="100%" viewBox="0 0 600 300" style="position:absolute; inset:0;">
+            <path d="M0 220 L150 190 L300 230 L450 180 L600 210" stroke="rgba(255,255,255,0.06)" stroke-width="60" fill="none"/>
+            <path d="M0 160 L200 140 L380 175 L600 150" stroke="var(--accent)" stroke-width="4" fill="none" opacity=".35"/>
+          </svg>
+          <div style="position:absolute; inset:0; background:rgba(6,8,7,0.55);"></div>
+          <div style="position:absolute; right:14px; bottom:14px; width:210px; height:150px; border:2px solid var(--accent); border-radius:8px; box-shadow:0 0 0 2000px rgba(6,8,7,0.55); background:rgba(10,14,12,0.15);">
+            <div style="position:absolute; inset:0; background:radial-gradient(circle at 55% 45%, rgba(62,207,142,0.12), transparent 60%);"></div>
+            <svg width="100%" height="100%" viewBox="0 0 210 150" style="position:absolute; inset:0;"><path d="M10 120 Q70 60 120 90 T200 40" stroke="var(--accent)" stroke-width="4" fill="none" stroke-linecap="round" filter="drop-shadow(0 0 5px rgba(245,158,50,.6))"/></svg>
+            <div style="position:absolute; top:-4px; left:-4px; width:9px; height:9px; border-radius:50%; background:var(--accent);"></div>
+            <div style="position:absolute; top:-4px; right:-4px; width:9px; height:9px; border-radius:50%; background:var(--accent);"></div>
+            <div style="position:absolute; bottom:-4px; left:-4px; width:9px; height:9px; border-radius:50%; background:var(--accent);"></div>
+            <div style="position:absolute; bottom:-4px; right:-4px; width:9px; height:9px; border-radius:50%; background:var(--accent);"></div>
+          </div>
+          <div class="pill" style="position:absolute; top:12px; left:12px; background:rgba(21,26,32,0.8); backdrop-filter:blur(8px);">Euro Truck Simulator 2 · Live</div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+          <span style="font-size:10.5px; color:var(--text-faint); font-family:var(--mono); letter-spacing:.03em;">Actual captured game pixels — not a generated map</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:11px; color:var(--text-faint);">Capture Source</span>
+            <div class="pill" style="cursor:pointer;">Euro Truck Simulator 2 — Auto<svg width="10" height="10" viewBox="0 0 24 24" class="icon" style="margin-left:2px;"><path d="M6 9l6 6 6-6"/></svg></div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:14px; align-items:center; justify-content:space-between;">
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary btn-sm">Reset</button>
+            <button class="btn btn-secondary btn-sm">Fit Standard GPS</button>
+          </div>
+          <button class="btn btn-primary btn-sm">Preview</button>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>10 · Step 2 — select capture area</b><br>Live game preview with a draggable, resizable amber selection box. No X/Y/width values shown — those live under Advanced. The Capture Source control stays small and out of the way; it's a fallback, not part of the normal flow.</div>
+  </div>
+
+  <!-- STEP 2b: AUTO DETECT -->
+  <div class="frame-block">
+    <div class="winframe narrow">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>Configure GPS Area</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:30px 28px; align-items:center; text-align:center; justify-content:center;">
+        <div style="width:46px; height:46px; border-radius:13px; background:rgba(62,207,142,.12); border:1px solid rgba(62,207,142,.3); display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
+          <svg width="21" height="21" viewBox="0 0 24 24" class="icon" style="color:var(--green)"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div style="font-weight:700; font-size:14.5px;">Standard GPS area detected</div>
+        <div style="color:var(--text-dim); font-size:12px; margin-top:8px; line-height:1.55;">Based on your 1920 × 1080 game window, TruckNav found the usual route advisor position.</div>
+        <div style="display:flex; gap:10px; margin-top:20px; width:100%;">
+          <button class="btn btn-secondary btn-block">Adjust Manually</button>
+          <button class="btn btn-primary btn-block">Use Selection</button>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>10b · Auto Detect</b><br>When the app can infer the standard route-advisor position for the current resolution, it offers to place the box automatically — the user can still nudge it afterward.</div>
+  </div>
+
+  <!-- STEP 2c: CAPTURE SOURCE FALLBACK -->
+  <div class="frame-block">
+    <div class="winframe narrow">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>Configure GPS Area</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:24px 24px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:2px;">Capture Source</div>
+        <div class="section-sub" style="margin-bottom:14px;">Only needed if automatic detection doesn't show the right window.</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:11px 13px; border-color:rgba(245,158,50,.4); background:rgba(245,158,50,.05);">
+            <span style="font-size:12.5px; font-weight:600;">Euro Truck Simulator 2 — Auto</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" class="icon" style="color:var(--accent)"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:11px 13px;">
+            <span style="font-size:12.5px; color:var(--text-dim);">Monitor 1 — 1920 × 1080</span>
+          </div>
+          <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:11px 13px;">
+            <span style="font-size:12.5px; color:var(--text-dim);">Monitor 2 — 2560 × 1440</span>
+          </div>
+        </div>
+        <div class="field-helper" style="margin-top:12px;">Monitor options only appear when more than one display is connected. Most users never need to change this.</div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>10c · Capture Source fallback</b><br>Reached only via "Choose Capture Source" from the error state — never surfaced during normal use. Automatic per-game capture remains the default and expected path.</div>
+  </div>
+
+  <!-- STEP 2d: CAPTURE UNAVAILABLE ERROR -->
+  <div class="frame-block">
+    <div class="winframe narrow">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>Configure GPS Area</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:30px 28px; align-items:center; text-align:center; justify-content:center;">
+        <div style="width:46px; height:46px; border-radius:13px; background:rgba(229,72,77,.12); border:1px solid rgba(229,72,77,.3); display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
+          <svg width="21" height="21" viewBox="0 0 24 24" class="icon" style="color:var(--red)"><rect x="3" y="8" width="18" height="9" rx="4"/><path d="M4 4l16 16"/></svg>
+        </div>
+        <div style="font-weight:700; font-size:14.5px;">Game detected, but the preview is unavailable.</div>
+        <div style="color:var(--text-dim); font-size:12px; margin-top:8px; line-height:1.55;">TruckNav can see Euro Truck Simulator 2 is running but can't show its window here.</div>
+        <div style="display:flex; gap:10px; margin-top:20px; width:100%;">
+          <button class="btn btn-secondary btn-block">Choose Capture Source</button>
+          <button class="btn btn-primary btn-block">Try Again</button>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>10d · Capture unavailable</b><br>Plain-language error with no mention of capture APIs. "Choose Capture Source" drops into the fallback selector above.</div>
+  </div>
+
+  <!-- STEP 3: PREVIEW -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>Configure GPS Area</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:22px 26px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px; font-family:var(--mono); font-size:10.5px; color:var(--text-faint);">
+          <span>① Choose Game</span><span>—</span><span>② Select Area</span><span>—</span><span style="color:var(--accent); font-weight:600;">③ Preview</span><span>—</span><span>④ Save</span>
+        </div>
+        <div style="font-size:12.5px; color:var(--text-dim); margin-bottom:12px;">This is exactly what will appear on your phone.</div>
+        <div style="display:flex; gap:16px; flex:1; align-items:center;">
+          <div style="flex:1; position:relative; border-radius:10px; overflow:hidden; border:1px solid var(--border-strong); background:linear-gradient(160deg,#171c14 0%,#0e1310 60%,#0a0d0b 100%); height:190px;">
+            <div style="position:absolute; inset:0; background:rgba(6,8,7,0.5);"></div>
+            <div style="position:absolute; right:12px; bottom:12px; width:150px; height:106px; border:2px solid var(--accent); border-radius:6px;"></div>
+          </div>
+          <svg width="22" height="22" viewBox="0 0 24 24" class="icon" style="color:var(--text-faint); flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <div style="flex-shrink:0; width:150px; height:190px; border-radius:16px; background:linear-gradient(160deg,#2b3038,#0a0c0e 65%); padding:8px; box-shadow:0 20px 40px -15px rgba(0,0,0,.7);">
+            <div style="width:100%; height:100%; border-radius:11px; overflow:hidden; position:relative; background:linear-gradient(160deg,#0c1310 0%,#0a0e0f 55%,#090c0d 100%);">
+              <svg width="100%" height="100%" viewBox="0 0 150 190" style="position:absolute; inset:0;"><path d="M10 150 Q60 90 90 120 T140 60" stroke="var(--accent)" stroke-width="5" fill="none" stroke-linecap="round" filter="drop-shadow(0 0 6px rgba(245,158,50,.6))"/></svg>
+              <div style="position:absolute; top:8px; left:8px; right:8px; display:flex; justify-content:space-between;">
+                <div class="pill" style="padding:3px 7px; font-size:8.5px; background:rgba(21,26,32,0.8);">2.4 km</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;">
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm">Portrait</button>
+            <button class="btn btn-primary btn-sm">Landscape</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:11.5px; color:var(--text-dim);">Display Fit</span>
+            <button class="btn btn-secondary btn-sm">Fill</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>11 · Step 3 — mobile preview</b><br>Side-by-side: the selected crop next to a real phone mockup, with orientation tabs and a Fill/Fit toggle. The feed is never distorted. Both sides show the actual captured ETS2/ATS pixels — TruckNav has no map engine of its own.</div>
+  </div>
+
+  <!-- STEP 4: SAVE -->
+  <div class="frame-block">
+    <div class="winframe narrow">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>Configure GPS Area</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:30px 28px; align-items:center; text-align:center;">
+        <div style="width:46px; height:46px; border-radius:13px; background:rgba(62,207,142,.12); border:1px solid rgba(62,207,142,.3); display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+          <svg width="21" height="21" viewBox="0 0 24 24" class="icon" style="color:var(--green)"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div style="font-weight:800; font-size:16px;">GPS Area Ready</div>
+        <div class="card" style="width:100%; margin-top:16px; text-align:left; display:flex; align-items:center; gap:12px;">
+          <div style="width:52px; height:38px; border-radius:6px; background:linear-gradient(160deg,#0c1310,#0a0e0f); border:1px solid var(--border-strong); flex-shrink:0;"></div>
+          <div>
+            <div style="font-weight:700; font-size:13px;">Euro Truck Simulator 2</div>
+            <div style="font-size:11px; color:var(--text-faint); margin-top:2px;">1920 × 1080 game window</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" style="margin-top:20px;">Save GPS Area</button>
+      </div>
+    </div>
+    <div class="frame-caption"><b>12 · Step 4 — save</b><br>Saving returns the user to Home, where the GPS Capture card flips from amber to a green "configured" state.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 06 — NAVIGATION CONTROLS ============================================================ -->
+<div class="group-label"><span>06</span> — Navigation Controls</div>
+<div class="gallery">
+
+  <div class="frame-block">
+    <div class="winframe compact">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/></svg>Edit Controls</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:24px 26px;">
+        <div style="font-size:15.5px; font-weight:700;">Navigation Controls</div>
+        <div class="section-sub">Zoom and view commands sent from your phone to Euro Truck Simulator 2. Defaults work out of the box — override only if needed.</div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">
+          <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" class="icon" style="color:var(--text-dim)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
+            <div style="flex:1; font-size:13px; font-weight:600;">Zoom In</div>
+            <span class="pill" style="color:var(--green); border-color:rgba(62,207,142,.3);"><span class="dot dot-green"></span>Mapped</span>
+            <button class="btn btn-ghost btn-sm">Change</button>
+          </div>
+          <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" class="icon" style="color:var(--text-dim)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M8 11h6"/></svg>
+            <div style="flex:1; font-size:13px; font-weight:600;">Zoom Out</div>
+            <span class="pill" style="color:var(--green); border-color:rgba(62,207,142,.3);"><span class="dot dot-green"></span>Mapped</span>
+            <button class="btn btn-ghost btn-sm">Change</button>
+          </div>
+          <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" class="icon" style="color:var(--text-dim)"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>
+            <div style="flex:1; font-size:13px; font-weight:600;">Navigation View</div>
+            <span class="pill" style="color:var(--green); border-color:rgba(62,207,142,.3);"><span class="dot dot-green"></span>Mapped</span>
+            <button class="btn btn-ghost btn-sm">Change</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>13 · Navigation controls mapping</b><br>Rotate is handled entirely on the phone. These three commands are sent to the game — advanced users can remap keys, everyone else never sees this screen.</div>
+  </div>
+
+  <!-- REMAP CAPTURE POPUP -->
+  <div class="frame-block">
+    <div class="winframe narrow">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/></svg>Change Key</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wcontent" style="padding:30px 28px; align-items:center; text-align:center; justify-content:center;">
+        <div style="font-size:13px; color:var(--text-dim); line-height:1.55;">Press the key you use for<br><b style="color:var(--text);">Zoom In</b> in Euro Truck Simulator 2</div>
+        <div class="field" style="margin-top:18px; width:120px; text-align:center; font-size:20px; font-weight:700; justify-content:center;">F5</div>
+        <div style="font-size:11px; color:var(--green); margin-top:10px; display:flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" class="icon"><path d="M20 6L9 17l-5-5"/></svg>F5 detected</div>
+        <div style="display:flex; gap:10px; margin-top:22px; width:100%;">
+          <button class="btn btn-secondary btn-block">Cancel</button>
+          <button class="btn btn-primary btn-block">Save</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;">Restore Default</button>
+      </div>
+    </div>
+    <div class="frame-caption"><b>13b · Remap a control</b><br>Pressing "Change" opens this small capture popup — no full keybinding editor. "Restore Default" reverts a single control back to the out-of-the-box mapping.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 07 — SETTINGS & DIAGNOSTICS ============================================================ -->
+<div class="group-label"><span>07</span> — Settings &amp; Diagnostics</div>
+<div class="gallery">
+
+  <!-- SETTINGS -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/><circle cx="8" cy="12.5" r=".6"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/><circle cx="12" cy="9" r="2.4"/></svg>GPS Capture</div>
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>Settings</div>
+          <div class="wsidebar-foot"><div class="v">v1.0.0</div><div class="status"><span class="dot dot-green"></span>Ready</div></div>
+        </div>
+        <div class="wcontent scroll">
+          <div style="font-size:17px; font-weight:700; margin-bottom:14px;">Settings</div>
+
+          <div style="font-size:10.5px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:4px 0 6px;">PC</div>
+          <div class="card" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <div><div style="font-size:12.5px; font-weight:600;">PC Name</div><div style="font-size:11px; color:var(--text-faint); font-family:var(--mono); margin-top:2px;">ROCK</div></div>
+            <button class="btn btn-ghost btn-sm">Edit</button>
+          </div>
+
+          <div style="font-size:10.5px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:4px 0 6px;">Startup</div>
+          <div class="card" style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Start TruckNav Connector with Windows</span><div class="toggle on"><div class="knob"></div></div></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Start minimized</span><div class="toggle on"><div class="knob"></div></div></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Minimize to system tray</span><div class="toggle on"><div class="knob"></div></div></div>
+            <div>
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Close button minimizes to tray</span><div class="toggle on"><div class="knob"></div></div></div>
+              <div class="field-helper" style="margin-top:6px;">Pressing X hides the window but keeps TruckNav running. Use "Exit TruckNav" from the tray icon to fully close it.</div>
+            </div>
+          </div>
+
+          <div style="font-size:10.5px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:4px 0 6px;">Connection</div>
+          <div class="card" style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Allow automatic reconnect</span><div class="toggle on"><div class="knob"></div></div></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Remember previously connected devices</span><div class="toggle on"><div class="knob"></div></div></div>
+          </div>
+
+          <div style="font-size:10.5px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:4px 0 6px;">Streaming</div>
+          <div class="card" style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Start streaming automatically</span><div class="toggle on"><div class="knob"></div></div></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Hardware acceleration</span><div class="toggle on"><div class="knob"></div></div></div>
+          </div>
+
+          <div style="font-size:10.5px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:4px 0 6px;">Notifications</div>
+          <div class="card" style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Show connection notifications</span><div class="toggle on"><div class="knob"></div></div></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Show game detection notifications</span><div class="toggle on"><div class="knob"></div></div></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12.5px;">Show streaming notifications</span><div class="toggle"><div class="knob"></div></div></div>
+          </div>
+
+          <div style="font-size:10.5px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:4px 0 6px;">About</div>
+          <div class="card" style="display:flex; align-items:center; justify-content:space-between;">
+            <div><div style="font-size:12.5px; font-weight:600;">TruckNav Connector</div><div style="font-size:11px; color:var(--text-faint); margin-top:2px;">Version 1.0.0</div></div>
+            <div style="display:flex; gap:8px;"><button class="btn btn-ghost btn-sm">View Licenses</button><button class="btn btn-secondary btn-sm">Check for Updates</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>14 · Settings</b><br>Grouped, scrollable, no codecs or protocols visible — those live one level down in Advanced. Startup, Connection, Streaming, and Notifications are kept as clearly separate groups.</div>
+  </div>
+
+  <!-- DIAGNOSTICS -->
+  <div class="frame-block">
+    <div class="winframe">
+      <div class="wtitlebar">
+        <div class="wtitle"><svg viewBox="0 0 24 24" class="icon"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>TruckNav Connector</div>
+        <div class="wcontrols">
+          <div class="wbtn"><svg viewBox="0 0 10 10"><path class="icon" d="M0 5h10"/></svg></div>
+          <div class="wbtn"><svg viewBox="0 0 10 10"><rect class="icon" x="0.5" y="0.5" width="9" height="9"/></svg></div>
+          <div class="wbtn wclose"><svg viewBox="0 0 10 10"><path class="icon" d="M0 0l10 10M0 10L10 0"/></svg></div>
+        </div>
+      </div>
+      <div class="wbody">
+        <div class="wsidebar">
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M3 11l9-7 9 7"/></svg>Home</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="4" width="18" height="12" rx="2"/></svg>Devices</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><rect x="3" y="8" width="18" height="9" rx="4"/></svg>Games</div>
+          <div class="wnav-item"><svg viewBox="0 0 24 24" class="icon"><path d="M12 21s7-6.3 7-11.6A7 7 0 105 9.4C5 14.7 12 21 12 21z"/></svg>GPS Capture</div>
+          <div class="wnav-item active"><svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3"/></svg>Settings</div>
+          <div style="margin:2px 12px; padding-top:6px; border-top:1px solid var(--border);">
+            <div class="wnav-item" style="color:var(--text-faint); font-size:11px; margin-top:6px;"><svg viewBox="0 0 24 24" class="icon" style="width:13px;height:13px;"><path d="M9 18l6-6-6-6"/></svg>Advanced / Diagnostics</div>
+          </div>
+          <div class="wsidebar-foot"><div class="v">v1.0.0</div><div class="status"><span class="dot dot-green"></span>Ready</div></div>
+        </div>
+        <div class="wcontent scroll">
+          <div style="font-size:17px; font-weight:700; margin-bottom:4px;">Advanced / Diagnostics</div>
+          <div class="section-sub" style="margin-bottom:14px;">For troubleshooting only — not needed for normal use.</div>
+          <div class="grid2" style="margin-bottom:14px;">
+            <div class="card">
+              <div class="card-title">Connection</div>
+              <div style="font-family:var(--mono); font-size:11.5px; margin-top:10px; line-height:2; color:var(--text-dim);">
+                Local IP&nbsp;&nbsp;&nbsp;192.168.1.42<br>Type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ethernet<br>Peer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HEN (Wi-Fi)
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Stream</div>
+              <div style="font-family:var(--mono); font-size:11.5px; margin-top:10px; line-height:2; color:var(--text-dim);">
+                Resolution&nbsp;&nbsp;720×1280<br>FPS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30<br>Bitrate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.1 Mbps<br>Latency&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;41 ms<br>Packet loss&nbsp;&nbsp;0.0%<br>Codec&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;H.264
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-title">Capture</div>
+            <div style="font-family:var(--mono); font-size:11.5px; margin-top:10px; line-height:2; color:var(--text-dim);">
+              Game&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Euro Truck Simulator 2<br>Source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Auto<br>Resolution&nbsp;&nbsp;1920×1080
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Recent Activity</div>
+            <div style="font-family:var(--mono); font-size:11px; margin-top:10px; line-height:2; color:var(--text-dim);">
+              22:31&nbsp;&nbsp;HEN connected<br>22:31&nbsp;&nbsp;ETS2 detected<br>22:31&nbsp;&nbsp;GPS stream started
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:12px;">Export Logs</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>15 · Advanced / Diagnostics</b><br>IP, resolution, FPS, bitrate, latency, packet loss, codec, capture source, and a readable activity log — nowhere near the normal Home screen. The PC here is on Ethernet while HEN is on Wi-Fi — both on the same local network is all that's required.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 08 — SYSTEM TRAY & NOTIFICATIONS ============================================================ -->
+<div class="group-label"><span>08</span> — System Tray &amp; Notifications</div>
+<div class="group-sub">The intended steady state: the window is closed and nobody notices</div>
+<div class="gallery">
+
+  <!-- TRAY MENU -->
+  <div class="frame-block">
+    <div style="width:420px; height:280px; position:relative; background:linear-gradient(160deg,#1a2530,#0c1216); border-radius:10px; overflow:hidden; box-shadow:0 40px 80px -25px rgba(0,0,0,.8);">
+      <div style="position:absolute; bottom:46px; right:14px; width:186px; background:var(--surface2); border:1px solid var(--border-strong); border-radius:10px; box-shadow:0 20px 40px -12px rgba(0,0,0,.7); padding:6px;">
+        <div style="padding:8px 10px; font-size:12px; font-weight:600;">Open TruckNav</div>
+        <div style="height:1px; background:var(--border); margin:4px 0;"></div>
+        <div style="padding:6px 10px; font-family:var(--mono); font-size:10.5px; color:var(--text-dim); display:flex; align-items:center; gap:6px;"><span class="dot dot-green"></span>ROCK — Ready</div>
+        <div style="padding:6px 10px; font-family:var(--mono); font-size:10.5px; color:var(--text-dim); display:flex; align-items:center; gap:6px;"><span class="dot dot-green"></span>HEN — Connected</div>
+        <div style="padding:6px 10px; font-family:var(--mono); font-size:10.5px; color:var(--text-dim); display:flex; align-items:center; gap:6px;"><span class="dot dot-green"></span>ETS2 — Running</div>
+        <div style="height:1px; background:var(--border); margin:4px 0;"></div>
+        <div style="padding:8px 10px; font-size:12px;">Pause Streaming</div>
+        <div style="padding:8px 10px; font-size:12px;">Settings</div>
+        <div style="height:1px; background:var(--border); margin:4px 0;"></div>
+        <div style="padding:8px 10px; font-size:12px; color:var(--red);">Exit TruckNav</div>
+      </div>
+      <div class="taskbar" style="position:absolute; bottom:0; left:0; right:0;">
+        <div style="width:20px; height:20px; border-radius:5px; background:var(--surface3);"></div>
+        <div class="tray-icons">
+          <svg width="14" height="14" viewBox="0 0 24 24" class="icon"><path d="M2 8c5-5 11-5 16 0M5 11c3.5-3.5 6.5-3.5 10 0"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" class="icon" style="color:var(--accent)"><path d="M12 3v13"/><path d="M6 10l6-7 6 7"/><path d="M4 21h16"/></svg>
+          <span style="font-family:var(--mono); font-size:11px;">22:31</span>
+        </div>
+      </div>
+    </div>
+    <div class="frame-caption"><b>16 · System tray menu</b><br>Right-click the tray icon for a compact status readout and quick actions — no need to ever reopen the main window.</div>
+  </div>
+
+  <!-- TOASTS -->
+  <div class="frame-block">
+    <div style="width:340px; height:280px; position:relative; background:linear-gradient(160deg,#1a2530,#0c1216); border-radius:10px; overflow:hidden; box-shadow:0 40px 80px -25px rgba(0,0,0,.8);">
+      <div style="position:absolute; top:16px; right:14px; display:flex; flex-direction:column; gap:8px; width:250px;">
+        <div style="background:var(--surface2); border:1px solid var(--border-strong); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 12px 24px -10px rgba(0,0,0,.6);">
+          <span class="dot dot-green"></span>
+          <div style="font-size:11.5px; font-weight:600;">HEN connected</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border-strong); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 12px 24px -10px rgba(0,0,0,.6);">
+          <span class="dot dot-green"></span>
+          <div style="font-size:11.5px; font-weight:600;">Euro Truck Simulator 2 detected</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border-strong); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 12px 24px -10px rgba(0,0,0,.6);">
+          <span class="dot dot-green pulse"></span>
+          <div style="font-size:11.5px; font-weight:600;">GPS streaming started</div>
+        </div>
+      </div>
+      <div class="taskbar" style="position:absolute; bottom:0; left:0; right:0;"><div style="width:20px;height:20px;border-radius:5px;background:var(--surface3);"></div><div class="tray-icons"><span style="font-family:var(--mono); font-size:11px;">22:31</span></div></div>
+    </div>
+    <div class="frame-caption"><b>17 · Toast notifications</b><br>Quiet, subtle Windows toasts — one per real state change, never for routine background activity.</div>
+  </div>
+
+</div>
+
+<!-- ============================================================ 09 — BANNERS & ERROR STATES ============================================================ -->
+<div class="group-label"><span>09</span> — Banners &amp; Error States</div>
+<div class="gallery" style="max-width:900px;">
+
+  <div class="frame-block" style="width:100%;">
+    <div style="display:flex; flex-direction:column; gap:10px; width:820px;">
+
+      <div style="display:flex; align-items:center; gap:10px; background:rgba(245,158,50,.08); border:1px solid rgba(245,158,50,.3); border-radius:11px; padding:12px 16px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" class="icon" style="color:var(--accent); flex-shrink:0;"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+        <div style="flex:1; font-size:12.5px; font-weight:600;">TruckNav Connector update available</div>
+        <button class="btn btn-ghost btn-sm">Later</button>
+        <button class="btn btn-primary btn-sm">Update</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; background:rgba(229,72,77,.08); border:1px solid rgba(229,72,77,.3); border-radius:11px; padding:12px 16px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" class="icon" style="color:var(--red); flex-shrink:0;"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/></svg>
+        <div style="flex:1;"><div style="font-size:12.5px; font-weight:600;">Update required</div><div style="font-size:11px; color:var(--text-dim); margin-top:1px;">Your TruckNav mobile app requires a newer Connector version.</div></div>
+        <button class="btn btn-primary btn-sm">Update TruckNav</button>
+      </div>
+
+      <div class="grid2" style="grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:6px;">
+        <div class="card">
+          <div style="display:flex; align-items:center; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" class="icon" style="color:var(--red)"><path d="M2 8c5-5 11-5 16 0M5 11c3.5-3.5 6.5-3.5 10 0" opacity=".3"/><path d="M4 4l16 16"/></svg><span style="font-size:12.5px; font-weight:700;">Local network unavailable</span></div>
+          <div style="font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.5;">Connect this PC to Wi-Fi or Ethernet and try again.</div>
+        </div>
+        <div class="card">
+          <div style="display:flex; align-items:center; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" class="icon" style="color:var(--red)"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg><span style="font-size:12.5px; font-weight:700;">Local connections blocked</span></div>
+          <div style="font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.5;">Windows Firewall is blocking TruckNav.</div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:8px;">Fix Connection</button>
+        </div>
+        <div class="card">
+          <div style="display:flex; align-items:center; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" class="icon" style="color:var(--red)"><rect x="3" y="8" width="18" height="9" rx="4"/><path d="M4 4l16 16"/></svg><span style="font-size:12.5px; font-weight:700;">Unable to capture the game</span></div>
+          <div style="font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.5;">Try again, or open Help for common fixes.</div>
+          <div style="display:flex; gap:6px; margin-top:8px;"><button class="btn btn-secondary btn-sm">Try Again</button><button class="btn btn-ghost btn-sm">Help</button></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="frame-caption"><b>18 · Status banners &amp; errors</b><br>Update available, version mismatch, no network, firewall blocked, capture unavailable — the same amber/red language used throughout, plain-language copy, one clear action each.</div>
+  </div>
+
+</div>
+
+</body>
+</html>

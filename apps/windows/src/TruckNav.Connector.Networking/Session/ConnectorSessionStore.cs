@@ -1,4 +1,6 @@
 using TruckNav.Connector.Core.Enums;
+using TruckNav.Connector.Core.Models;
+using TruckNav.Connector.Core.Utilities;
 using TruckNav.Connector.Networking.Hosting;
 using TruckNav.Connector.Networking.Identity;
 using TruckNav.Connector.Networking.Models;
@@ -188,5 +190,31 @@ public sealed class ConnectorSessionStore : IConnectorSessionStore
         }
 
         SnapshotChanged?.Invoke(this, snapshot);
+    }
+
+    public void UpdateGameDetection(GameDetectionSnapshot gameDetection)
+    {
+        ConnectorSessionSnapshot? snapshot = null;
+
+        lock (_gate)
+        {
+            if (GameDetectionSnapshotComparer.AreEquivalent(_snapshot.GameDetection, gameDetection))
+            {
+                return;
+            }
+
+            _snapshot = _snapshot with
+            {
+                GameDetection = gameDetection,
+                LastUpdatedUtc = DateTimeOffset.UtcNow
+            };
+
+            snapshot = _snapshot;
+        }
+
+        if (snapshot is not null)
+        {
+            SnapshotChanged?.Invoke(this, snapshot);
+        }
     }
 }

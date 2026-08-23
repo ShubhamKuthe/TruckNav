@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:trucknav_mobile/features/gps/gps_screen.dart';
-import 'package:trucknav_mobile/features/session/mdns_connector_discovery_service.dart';
-import 'package:trucknav_mobile/features/session/session_preferences_store.dart';
-import 'package:trucknav_mobile/features/session/web_socket_connector_client.dart';
+import 'package:trucknav_mobile/features/session/session_controller.dart';
+import 'package:trucknav_mobile/features/session/session_state.dart';
 
 import 'test_doubles.dart';
 
@@ -13,18 +12,14 @@ void main() {
   testWidgets(
     'gps controls auto-hide after three seconds and reappear on tap',
     (tester) async {
-      final preferences = FakeSessionPreferencesStore(
-        snapshot: fakeProfile(isFirstLaunch: true),
-      );
-      final discovery = FakeDiscoveryService();
-      final client = FakeConnectorClient();
-
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            sessionPreferencesStoreProvider.overrideWithValue(preferences),
-            lanPairingServiceProvider.overrideWithValue(discovery),
-            connectorClientProvider.overrideWithValue(client),
+            sessionControllerProvider.overrideWith(
+              () => _StaticSessionController(
+                _buildSessionState(selectedGame: TruckGame.euroTruckSimulator2),
+              ),
+            ),
           ],
           child: const MaterialApp(home: GpsScreen()),
         ),
@@ -43,4 +38,50 @@ void main() {
       expect(find.text('Zoom in'), findsOneWidget);
     },
   );
+
+  testWidgets('gps screen shows game-not-detected actions when selected game closes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionControllerProvider.overrideWith(
+            () => _StaticSessionController(
+              _buildSessionState(selectedGame: TruckGame.euroTruckSimulator2),
+            ),
+          ),
+        ],
+        child: const MaterialApp(home: GpsScreen()),
+      ),
+    );
+
+    expect(find.text('Game not detected'), findsOneWidget);
+    expect(
+      find.text('Start Euro Truck Simulator 2 on ROCK to continue.'),
+      findsOneWidget,
+    );
+    expect(find.text('Check Again'), findsOneWidget);
+    expect(find.text('Choose Another Game'), findsOneWidget);
+  });
+}
+
+SessionState _buildSessionState({required TruckGame selectedGame}) {
+  return SessionState.initial().copyWith(
+    deviceId: 'hen-id',
+    deviceName: 'HEN',
+    selectedConnector: fakeConnector(),
+    connectionStage: ConnectionStage.waitingForStream,
+    supportedGames: const SupportedGameState.none(),
+    runningGame: TruckGame.none,
+    selectedGame: selectedGame,
+  );
+}
+
+class _StaticSessionController extends SessionController {
+  _StaticSessionController(this._state);
+
+  final SessionState _state;
+
+  @override
+  SessionState build() => _state;
 }

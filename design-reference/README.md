@@ -5,14 +5,13 @@ The TruckNav specification requires these approved design files to be present in
 - `trucknav-mobile.html`
 - `trucknav-connector.html`
 
-They are not currently available in the repository or supplied attachments.
+`trucknav-connector.html` is present and is the approved Windows UX reference.
 
-Until they are added, UI implementation in this repo is limited to:
+`trucknav-mobile.html` has not been added to this repository. Android visual work remains limited to the existing implemented design until that reference is supplied.
 
 - design tokens
 - reusable components
 - information architecture
 - explicit state-driven screens
 
-No placeholder HTML redesign has been substituted for the missing approved files.
-
+Phase 4's Configure GPS Area workflow follows the connector reference while replacing its illustrative map artwork with real Windows game-capture pixels.

@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TruckNav.Connector.Core.Models;
+using TruckNav.Connector.Core.Utilities;
 using TruckNav.Connector.Networking.Discovery;
 using TruckNav.Connector.Networking.Identity;
 using TruckNav.Connector.Networking.Models;
@@ -28,8 +30,11 @@ public sealed class ConnectorServerHostedService : IHostedService, IConnectorSer
     private readonly ILogger<ConnectorServerHostedService> _logger;
     private readonly IProtocolHandler _protocolHandler;
     private readonly IConnectorSessionStore _sessionStore;
+    private readonly object _sessionGate = new();
 
     private WebApplication? _serverApplication;
+    private IConnectionSession? _activeSession;
+    private GameDetectionSnapshot _lastBroadcastGameDetection = GameDetectionSnapshot.Empty;
 
     public ConnectorServerHostedService(
         IConnectorIdentityProvider identityProvider,
@@ -43,6 +48,8 @@ public sealed class ConnectorServerHostedService : IHostedService, IConnectorSer
         _sessionStore = sessionStore;
         _discoveryAdvertiser = discoveryAdvertiser;
         _logger = logger;
+
+        _sessionStore.SnapshotChanged += (_, snapshot) => _ = BroadcastGameStateIfNeededAsync(snapshot);
     }
 
     public Uri? ServiceUri { get; private set; }
@@ -210,6 +217,8 @@ public sealed class ConnectorServerHostedService : IHostedService, IConnectorSer
             }
 
             sessionActivated = true;
+            SetActiveSession(session);
+            await SendGameStateAsync(session, _sessionStore.Snapshot.GameDetection, cancellationToken);
             _logger.LogInformation(
                 "TruckNav mobile connected: {DeviceName} ({DeviceId}).",
                 session.RemotePeer.DeviceName,
@@ -267,8 +276,11 @@ public sealed class ConnectorServerHostedService : IHostedService, IConnectorSer
                     case PingMessage:
                         await session.SendAsync(_protocolHandler.CreatePong(), cancellationToken);
                         break;
+                    case GameStateRequestMessage:
+                        await SendGameStateAsync(session, _sessionStore.Snapshot.GameDetection, cancellationToken);
+                        break;
                     default:
-                        const string unsupportedMessage = "Only ping messages are supported after handshake in Phase 2.";
+                        const string unsupportedMessage = "Only ping and game_state_request messages are supported after handshake in Phase 3.";
                         _sessionStore.RecordIssue("unsupported_message_type", unsupportedMessage, session.RemotePeer);
                         await SendProtocolErrorAsync(session, "unsupported_message_type", unsupportedMessage, cancellationToken);
                         await session.CloseAsync(WebSocketCloseStatus.PolicyViolation, unsupportedMessage, cancellationToken);
@@ -288,6 +300,7 @@ public sealed class ConnectorServerHostedService : IHostedService, IConnectorSer
         {
             if (session is not null)
             {
+                ClearActiveSession(session);
                 _sessionStore.RecordIssue("unexpected_disconnect", exception.Message, session.RemotePeer);
                 _sessionStore.MarkSessionClosed(session, intentional: false, exception.Message);
             }
@@ -303,6 +316,7 @@ public sealed class ConnectorServerHostedService : IHostedService, IConnectorSer
 
             if (session is not null)
             {
+                ClearActiveSession(session);
                 await session.DisposeAsync();
             }
         }
@@ -332,6 +346,76 @@ public sealed class ConnectorServerHostedService : IHostedService, IConnectorSer
         if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseReceived)
         {
             await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, message, cancellationToken);
+        }
+    }
+
+    private async Task BroadcastGameStateIfNeededAsync(ConnectorSessionSnapshot snapshot)
+    {
+        IConnectionSession? session;
+
+        lock (_sessionGate)
+        {
+            if (_activeSession is null ||
+                GameDetectionSnapshotComparer.AreEquivalent(_lastBroadcastGameDetection, snapshot.GameDetection))
+            {
+                return;
+            }
+
+            session = _activeSession;
+            _lastBroadcastGameDetection = snapshot.GameDetection;
+        }
+
+        try
+        {
+            await SendGameStateAsync(session, snapshot.GameDetection, CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Failed to send updated game_state to the active TruckNav mobile session.");
+        }
+    }
+
+    private async Task SendGameStateAsync(
+        IConnectionSession session,
+        GameDetectionSnapshot snapshot,
+        CancellationToken cancellationToken)
+    {
+        await session.SendAsync(CreateGameStateMessage(snapshot), cancellationToken);
+        _logger.LogInformation(
+            "game_state sent to {DeviceName} ({DeviceId}).",
+            session.RemotePeer.DeviceName,
+            session.RemotePeer.DeviceId);
+    }
+
+    private static GameStateMessage CreateGameStateMessage(GameDetectionSnapshot snapshot)
+    {
+        var games = SupportedGameCatalog.All
+            .Select(definition => new GameStateEntryMessage(
+                definition.ProtocolCode,
+                snapshot.IsRunning(definition.GameType)))
+            .ToList();
+
+        return new GameStateMessage(games);
+    }
+
+    private void SetActiveSession(IConnectionSession session)
+    {
+        lock (_sessionGate)
+        {
+            _activeSession = session;
+            _lastBroadcastGameDetection = _sessionStore.Snapshot.GameDetection;
+        }
+    }
+
+    private void ClearActiveSession(IConnectionSession session)
+    {
+        lock (_sessionGate)
+        {
+            if (ReferenceEquals(_activeSession, session))
+            {
+                _activeSession = null;
+                _lastBroadcastGameDetection = GameDetectionSnapshot.Empty;
+            }
         }
     }
 

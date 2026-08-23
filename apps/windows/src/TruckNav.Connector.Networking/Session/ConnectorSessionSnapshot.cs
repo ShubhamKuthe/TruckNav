@@ -1,10 +1,12 @@
 using TruckNav.Connector.Core.Enums;
+using TruckNav.Connector.Core.Models;
 using TruckNav.Connector.Networking.Models;
 
 namespace TruckNav.Connector.Networking.Session;
 
 public sealed record ConnectorSessionSnapshot(
     ConnectorPeerInfo LocalConnector,
+    GameDetectionSnapshot GameDetection,
     DeviceConnectionState DeviceState,
     ConnectorPeerInfo? ActiveMobileDevice,
     ConnectorPeerInfo? LastSeenMobileDevice,
@@ -15,6 +17,7 @@ public sealed record ConnectorSessionSnapshot(
     public static ConnectorSessionSnapshot CreateInitial(ConnectorPeerInfo localConnector) =>
         new(
             localConnector,
+            GameDetectionSnapshot.Empty,
             DeviceConnectionState.WaitingForDevice,
             ActiveMobileDevice: null,
             LastSeenMobileDevice: null,

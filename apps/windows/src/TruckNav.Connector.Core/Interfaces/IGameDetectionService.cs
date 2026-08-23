@@ -4,5 +4,9 @@ namespace TruckNav.Connector.Core.Interfaces;
 
 public interface IGameDetectionService
 {
-    Task<GameDetectionSnapshot> GetCurrentGameAsync(CancellationToken cancellationToken = default);
+    GameDetectionSnapshot CurrentSnapshot { get; }
+
+    event EventHandler<GameDetectionSnapshot>? SnapshotChanged;
+
+    Task<GameDetectionSnapshot> RefreshAsync(CancellationToken cancellationToken = default);
 }

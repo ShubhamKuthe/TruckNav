@@ -51,6 +51,12 @@ class ConnectorClientWeakConnectionChanged extends ConnectorClientEvent {
   final bool isWeak;
 }
 
+class ConnectorClientGameStateUpdated extends ConnectorClientEvent {
+  const ConnectorClientGameStateUpdated(this.gameState);
+
+  final SupportedGameState gameState;
+}
+
 abstract interface class ConnectorClient {
   Stream<ConnectorClientEvent> get events;
 
@@ -60,6 +66,8 @@ abstract interface class ConnectorClient {
   });
 
   Future<void> disconnect({bool intentional = true});
+
+  Future<void> requestGameState();
 
   Future<void> dispose();
 }

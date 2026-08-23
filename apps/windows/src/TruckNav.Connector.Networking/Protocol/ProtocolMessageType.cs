@@ -6,6 +6,7 @@ public static class ProtocolMessageType
     public const string HelloAck = "hello_ack";
     public const string DeviceState = "device_state";
     public const string GameState = "game_state";
+    public const string GameStateRequest = "game_state_request";
     public const string CaptureState = "capture_state";
     public const string StreamState = "stream_state";
     public const string WebRtcOffer = "webrtc_offer";

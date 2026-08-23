@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging;
 using TruckNav.Connector.App.Services;
 using TruckNav.Connector.App.ViewModels;
 using TruckNav.Connector.Capture;
+using TruckNav.Connector.Core.Interfaces;
 using TruckNav.Connector.Networking.Protocol;
+using TruckNav.Connector.Networking.Storage;
 
 namespace TruckNav.Connector.App;
 
@@ -29,10 +31,17 @@ public partial class App : Application
             .ConfigureServices(services =>
             {
                 services.AddTruckNavCapture();
+                services.AddSingleton<GameDetectionStateSyncHostedService>();
+                services.AddHostedService(serviceProvider =>
+                    serviceProvider.GetRequiredService<GameDetectionStateSyncHostedService>());
                 services.AddTruckNavNetworking();
 
                 services.AddSingleton<INavigationService, NavigationService>();
                 services.AddSingleton<IConnectorUiStateStore, FileConnectorUiStateStore>();
+                services.AddSingleton<IGpsCaptureProfileStore>(serviceProvider =>
+                    new JsonGpsCaptureProfileStore(
+                        serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<ConnectorStorageOptions>>()
+                            .Value.RootDirectory));
                 services.AddSingleton<ILocalConnectorProfileService, LocalConnectorProfileService>();
                 services.AddSingleton<LanPairingService>();
                 services.AddSingleton<ILanPairingService>(serviceProvider =>

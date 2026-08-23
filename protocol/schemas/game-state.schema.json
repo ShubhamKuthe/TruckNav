@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trucknav/game-state.schema.json",
+  "title": "TruckNav Game State Message",
+  "type": "object",
+  "required": [
+    "type",
+    "games"
+  ],
+  "properties": {
+    "type": {
+      "const": "game_state"
+    },
+    "games": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "game",
+          "running"
+        ],
+        "properties": {
+          "game": {
+            "enum": [
+              "ets2",
+              "ats"
+            ]
+          },
+          "running": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -29,4 +29,32 @@ public sealed class ProtocolSerializerTests
         Assert.Equal(message.Platform, result.Platform);
         Assert.Equal(message.Capabilities, result.Capabilities);
     }
+
+    [Fact]
+    public void SerializeAndDeserialize_ShouldRoundTripGameStateMessage()
+    {
+        var message = new GameStateMessage(
+            new[]
+            {
+                new GameStateEntryMessage("ets2", true),
+                new GameStateEntryMessage("ats", false)
+            });
+
+        var json = ProtocolSerializer.Serialize(message);
+        var result = ProtocolSerializer.Deserialize<GameStateMessage>(json);
+
+        Assert.Equal(message.Type, result.Type);
+        Assert.Collection(
+            result.Games,
+            game =>
+            {
+                Assert.Equal("ets2", game.Game);
+                Assert.True(game.Running);
+            },
+            game =>
+            {
+                Assert.Equal("ats", game.Game);
+                Assert.False(game.Running);
+            });
+    }
 }

@@ -82,6 +82,50 @@ class ConnectorSummary {
   }
 }
 
+class SupportedGameState {
+  const SupportedGameState({
+    required this.ets2Running,
+    required this.atsRunning,
+  });
+
+  const SupportedGameState.none()
+    : ets2Running = false,
+      atsRunning = false;
+
+  final bool ets2Running;
+  final bool atsRunning;
+
+  bool get hasAnyRunningGame => ets2Running || atsRunning;
+
+  bool get hasMultipleRunningGames => ets2Running && atsRunning;
+
+  List<TruckGame> get runningGames => <TruckGame>[
+    if (ets2Running) TruckGame.euroTruckSimulator2,
+    if (atsRunning) TruckGame.americanTruckSimulator,
+  ];
+
+  TruckGame get singleRunningGameOrNone => switch (runningGames) {
+    [final TruckGame game] => game,
+    _ => TruckGame.none,
+  };
+
+  bool isRunning(TruckGame game) => switch (game) {
+    TruckGame.euroTruckSimulator2 => ets2Running,
+    TruckGame.americanTruckSimulator => atsRunning,
+    TruckGame.none => false,
+  };
+
+  SupportedGameState copyWith({
+    bool? ets2Running,
+    bool? atsRunning,
+  }) {
+    return SupportedGameState(
+      ets2Running: ets2Running ?? this.ets2Running,
+      atsRunning: atsRunning ?? this.atsRunning,
+    );
+  }
+}
+
 class SessionState {
   const SessionState({
     required this.deviceId,
@@ -90,6 +134,7 @@ class SessionState {
     required this.availableConnectors,
     required this.autoReconnect,
     required this.autoOpenRunningGame,
+    required this.supportedGames,
     required this.runningGame,
     required this.selectedGame,
     required this.weakConnection,
@@ -112,6 +157,7 @@ class SessionState {
       selectedConnector: null,
       autoReconnect: true,
       autoOpenRunningGame: false,
+      supportedGames: SupportedGameState.none(),
       runningGame: TruckGame.none,
       selectedGame: TruckGame.none,
       weakConnection: false,
@@ -130,6 +176,7 @@ class SessionState {
   final ConnectorSummary? selectedConnector;
   final bool autoReconnect;
   final bool autoOpenRunningGame;
+  final SupportedGameState supportedGames;
   final TruckGame runningGame;
   final TruckGame selectedGame;
   final bool weakConnection;
@@ -147,6 +194,7 @@ class SessionState {
     Object? selectedConnector = _unset,
     bool? autoReconnect,
     bool? autoOpenRunningGame,
+    SupportedGameState? supportedGames,
     TruckGame? runningGame,
     TruckGame? selectedGame,
     bool? weakConnection,
@@ -166,6 +214,7 @@ class SessionState {
           : selectedConnector as ConnectorSummary?,
       autoReconnect: autoReconnect ?? this.autoReconnect,
       autoOpenRunningGame: autoOpenRunningGame ?? this.autoOpenRunningGame,
+      supportedGames: supportedGames ?? this.supportedGames,
       runningGame: runningGame ?? this.runningGame,
       selectedGame: selectedGame ?? this.selectedGame,
       weakConnection: weakConnection ?? this.weakConnection,
