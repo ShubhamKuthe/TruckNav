@@ -1,0 +1,11 @@
+{
+  "type": "hello",
+  "protocolVersion": 1,
+  "appVersion": "0.1.0",
+  "deviceId": "7ac8fc8b-9fd6-4acf-a451-e0c4d3b5a920",
+  "deviceName": "HEN",
+  "role": "mobile",
+  "platform": "android",
+  "capabilities": []
+}
+

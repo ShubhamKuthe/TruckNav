@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trucknav/hello.schema.json",
+  "title": "TruckNav Hello Message",
+  "type": "object",
+  "required": [
+    "type",
+    "protocolVersion",
+    "appVersion",
+    "deviceId",
+    "deviceName",
+    "role",
+    "platform",
+    "capabilities"
+  ],
+  "properties": {
+    "type": {
+      "const": "hello"
+    },
+    "protocolVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "appVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deviceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "deviceName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "role": {
+      "enum": [
+        "connector",
+        "mobile"
+      ]
+    },
+    "platform": {
+      "enum": [
+        "windows",
+        "android",
+        "ios",
+        "unknown"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}
+

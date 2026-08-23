@@ -1,0 +1,34 @@
+<UserControl x:Class="TruckNav.Connector.App.Views.InfoPageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:TruckNav.Connector.App.ViewModels">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Sections}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type viewModels:PageSectionViewModel}">
+                    <Border Style="{StaticResource SectionCardBorderStyle}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Heading}"
+                                       Style="{StaticResource SectionHeadingTextStyle}" />
+                            <TextBlock Margin="0,8,0,0"
+                                       Text="{Binding Description}"
+                                       Style="{StaticResource SecondaryBodyTextStyle}"
+                                       TextWrapping="Wrap" />
+                            <ItemsControl Margin="0,14,0,0"
+                                          ItemsSource="{Binding Items}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="0,0,0,8"
+                                                   Text="{Binding}"
+                                                   Style="{StaticResource SecondaryBodyTextStyle}"
+                                                   TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</UserControl>

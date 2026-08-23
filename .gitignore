@@ -1,0 +1,39 @@
+## Visual Studio / .NET
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+bin/
+obj/
+
+## Rider / JetBrains
+.idea/
+*.DotSettings.user
+
+## Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+build/
+coverage/
+
+## Android / Gradle
+**/android/.gradle/
+**/android/local.properties
+**/android/captures/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+## Logs / artifacts
+artifacts/**
+!artifacts/.gitkeep
+*.log
+
+## OS files
+Thumbs.db
+Desktop.ini
+
