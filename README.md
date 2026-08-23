@@ -68,4 +68,3 @@ See `docs/BUILDING.md` for toolchain details.
 - The final approved Connector and Mobile layouts cannot be matched exactly until the missing design-reference HTML files are committed.
 - Production WebRTC/H.264 transport is intentionally not faked in Phase 1. The repository isolates streaming behind interfaces so Phase 5/6 can be implemented without rewriting UI/domain code.
 - The current mobile shell is Android-first for V1, but the Flutter architecture avoids unnecessary Android-only coupling.
-
