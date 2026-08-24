@@ -1,13 +1,13 @@
 # TruckNav
 
-TruckNav is a LAN-first native truck GPS for Euro Truck Simulator 2 and American Truck Simulator. A Windows connector reads live SCS telemetry and calculates a route from locally generated game-map data; the Android app renders that route as a dedicated navigation display.
+The TruckNav is an original native truck GPS for both Euro Truck Simulator 2 (ETS2) and American Truck Simulator (ATS). The TruckNav uses a Windows application called "TruckNav Connector" that connects to live SCS telemetry and generates local navigation data using your own ETS2/ATS game maps. That local data is sent via LAN to the mobile device where it is rendered as a fully-dedicated, user-friendly truck GPS display.
 
-TruckNav consists of:
+TruckNav includes two main components:
 
-- `TruckNav Connector`: a Windows WPF application that detects ETS2/ATS installations, installs the telemetry plugin, builds local navigation data, calculates routes, and exposes them to paired devices over the LAN.
-- `TruckNav Mobile`: a Flutter Android application that discovers and pairs with the connector, then renders the truck position, route, maneuver, distance, ETA, speed, and speed limit.
+- The TruckNav Connector: A Windows WPF application that identifies all existing ETS2/ATS games installed on your computer, installs the telemetry plugin into those games, creates local navigation data for use by the mobile device, determines the best routes based on the data created, and shares that information with the connected device via the LAN.
+- TruckNav Mobile: An Android-based application written in Flutter. This application will automatically discover and connect with your TruckNav Connector, and then display real-time information about your truck's location, planned route, maneuvers needed to complete the route (e.g., left turns), remaining distance to reach your destination, estimated time of arrival at your destination, current truck speed, and maximum allowed truck speed along the planned route.
 
-No account, cloud service, internet connection, manual IP entry, screen capture, or Route Advisor visibility is required during navigation. TruckNav calculates its own fastest route, so its selected roads can differ from the in-game advisor.
+You do not need a login, a cloud service, a working internet connection, manually entering your router's LAN IP address, taking a screenshot of the display, or having Route Advisor visible while you navigate with TruckNav. As TruckNav computes its own best routes, it may plan different roads than Route Advisor does.
 
 ## Repository Layout
 
