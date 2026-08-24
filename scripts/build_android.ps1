@@ -10,10 +10,21 @@ function Get-JavaExecutableInfo {
         return $null
     }
 
+    $previousErrorActionPreference = $ErrorActionPreference
     try {
+        # Java writes successful version output to stderr; do not let strict mode
+        # turn those lines into a terminating PowerShell error.
+        $ErrorActionPreference = "Continue"
         $versionOutput = & $JavaExe -version 2>&1
     }
     catch {
+        return $null
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($LASTEXITCODE -ne 0) {
         return $null
     }
 

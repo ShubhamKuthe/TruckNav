@@ -27,8 +27,8 @@
             <DataTemplate DataType="{x:Type viewModels:GamesViewModel}">
                 <views:GamesView />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type viewModels:GpsCaptureViewModel}">
-                <views:GpsCaptureView />
+            <DataTemplate DataType="{x:Type viewModels:NavigationViewModel}">
+                <views:NavigationView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type viewModels:SettingsViewModel}">
                 <views:SettingsView />

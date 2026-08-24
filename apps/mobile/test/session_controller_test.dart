@@ -365,49 +365,52 @@ void main() {
     expect(state.selectedConnector?.name, 'ROCK');
     expect(state.selectedGame, TruckGame.euroTruckSimulator2);
     expect(state.supportedGames.hasAnyRunningGame, isFalse);
-    expect(state.connectionStage, ConnectionStage.waitingForStream);
+    expect(state.connectionStage, ConnectionStage.waitingForNavigation);
   });
 
-  test('selected ETS2 returning updates automatically without reconnect', () async {
-    final preferences = FakeSessionPreferencesStore(snapshot: fakeProfile());
-    final discovery = FakeDiscoveryService(
-      responses: <List<ConnectorSummary>>[
-        <ConnectorSummary>[fakeConnector()],
-      ],
-    );
-    final client = FakeConnectorClient()
-      ..enqueueConnectResult(ConnectorConnectSuccess(fakePeerIdentity()));
+  test(
+    'selected ETS2 returning updates automatically without reconnect',
+    () async {
+      final preferences = FakeSessionPreferencesStore(snapshot: fakeProfile());
+      final discovery = FakeDiscoveryService(
+        responses: <List<ConnectorSummary>>[
+          <ConnectorSummary>[fakeConnector()],
+        ],
+      );
+      final client = FakeConnectorClient()
+        ..enqueueConnectResult(ConnectorConnectSuccess(fakePeerIdentity()));
 
-    final container = ProviderContainer(
-      overrides: [
-        sessionPreferencesStoreProvider.overrideWithValue(preferences),
-        lanPairingServiceProvider.overrideWithValue(discovery),
-        connectorClientProvider.overrideWithValue(client),
-      ],
-    );
-    addTearDown(container.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          sessionPreferencesStoreProvider.overrideWithValue(preferences),
+          lanPairingServiceProvider.overrideWithValue(discovery),
+          connectorClientProvider.overrideWithValue(client),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    final controller = container.read(sessionControllerProvider.notifier);
-    await _pumpAsyncWork();
-    await controller.connectToConnector(
-      container.read(sessionControllerProvider).availableConnectors.single,
-    );
+      final controller = container.read(sessionControllerProvider.notifier);
+      await _pumpAsyncWork();
+      await controller.connectToConnector(
+        container.read(sessionControllerProvider).availableConnectors.single,
+      );
 
-    controller.chooseGame(TruckGame.euroTruckSimulator2);
-    controller.openGps();
-    client.emitGameState(const SupportedGameState.none());
-    await _pumpAsyncWork();
-    client.emitGameState(
-      const SupportedGameState(ets2Running: true, atsRunning: false),
-    );
-    await _pumpAsyncWork();
+      controller.chooseGame(TruckGame.euroTruckSimulator2);
+      controller.openGps();
+      client.emitGameState(const SupportedGameState.none());
+      await _pumpAsyncWork();
+      client.emitGameState(
+        const SupportedGameState(ets2Running: true, atsRunning: false),
+      );
+      await _pumpAsyncWork();
 
-    final state = container.read(sessionControllerProvider);
-    expect(state.selectedGame, TruckGame.euroTruckSimulator2);
-    expect(state.supportedGames.ets2Running, isTrue);
-    expect(state.connectionStage, ConnectionStage.waitingForStream);
-    expect(client.connectCalls, hasLength(1));
-  });
+      final state = container.read(sessionControllerProvider);
+      expect(state.selectedGame, TruckGame.euroTruckSimulator2);
+      expect(state.supportedGames.ets2Running, isTrue);
+      expect(state.connectionStage, ConnectionStage.waitingForNavigation);
+      expect(client.connectCalls, hasLength(1));
+    },
+  );
 
   test('requestGameStateRefresh sends a manual game-state request', () async {
     final preferences = FakeSessionPreferencesStore(snapshot: fakeProfile());
@@ -439,42 +442,45 @@ void main() {
     expect(client.requestGameStateCount, 1);
   });
 
-  test('automatic-open selects exactly one running game when enabled', () async {
-    final preferences = FakeSessionPreferencesStore(
-      snapshot: fakeProfile(autoOpenRunningGame: true),
-    );
-    final discovery = FakeDiscoveryService(
-      responses: <List<ConnectorSummary>>[
-        <ConnectorSummary>[fakeConnector()],
-      ],
-    );
-    final client = FakeConnectorClient()
-      ..enqueueConnectResult(ConnectorConnectSuccess(fakePeerIdentity()));
+  test(
+    'automatic-open selects exactly one running game when enabled',
+    () async {
+      final preferences = FakeSessionPreferencesStore(
+        snapshot: fakeProfile(autoOpenRunningGame: true),
+      );
+      final discovery = FakeDiscoveryService(
+        responses: <List<ConnectorSummary>>[
+          <ConnectorSummary>[fakeConnector()],
+        ],
+      );
+      final client = FakeConnectorClient()
+        ..enqueueConnectResult(ConnectorConnectSuccess(fakePeerIdentity()));
 
-    final container = ProviderContainer(
-      overrides: [
-        sessionPreferencesStoreProvider.overrideWithValue(preferences),
-        lanPairingServiceProvider.overrideWithValue(discovery),
-        connectorClientProvider.overrideWithValue(client),
-      ],
-    );
-    addTearDown(container.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          sessionPreferencesStoreProvider.overrideWithValue(preferences),
+          lanPairingServiceProvider.overrideWithValue(discovery),
+          connectorClientProvider.overrideWithValue(client),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    final controller = container.read(sessionControllerProvider.notifier);
-    await _pumpAsyncWork();
-    await controller.connectToConnector(
-      container.read(sessionControllerProvider).availableConnectors.single,
-    );
+      final controller = container.read(sessionControllerProvider.notifier);
+      await _pumpAsyncWork();
+      await controller.connectToConnector(
+        container.read(sessionControllerProvider).availableConnectors.single,
+      );
 
-    client.emitGameState(
-      const SupportedGameState(ets2Running: true, atsRunning: false),
-    );
-    await _pumpAsyncWork();
+      client.emitGameState(
+        const SupportedGameState(ets2Running: true, atsRunning: false),
+      );
+      await _pumpAsyncWork();
 
-    final state = container.read(sessionControllerProvider);
-    expect(state.selectedGame, TruckGame.euroTruckSimulator2);
-    expect(state.connectionStage, ConnectionStage.waitingForStream);
-  });
+      final state = container.read(sessionControllerProvider);
+      expect(state.selectedGame, TruckGame.euroTruckSimulator2);
+      expect(state.connectionStage, ConnectionStage.waitingForNavigation);
+    },
+  );
 
   test('automatic-open does not guess when both games are running', () async {
     final preferences = FakeSessionPreferencesStore(

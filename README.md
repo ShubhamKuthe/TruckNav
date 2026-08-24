@@ -1,48 +1,24 @@
 # TruckNav
 
-TruckNav is a two-app LAN-first system that mirrors the live ETS2/ATS Route Advisor navigation area from a Windows PC to an Android phone or tablet.
+TruckNav is a LAN-first native truck GPS for Euro Truck Simulator 2 and American Truck Simulator. A Windows connector reads live SCS telemetry and calculates a route from locally generated game-map data; the Android app renders that route as a dedicated navigation display.
 
 TruckNav consists of:
 
-- `TruckNav Connector`: a Windows WPF application that detects ETS2/ATS, manages GPS capture profiles, hosts local discovery/signaling services, and streams the cropped navigation region.
-- `TruckNav Mobile`: a Flutter Android application that discovers the connector automatically, connects on the same local network, displays the live GPS feed fullscreen, and sends semantic navigation commands back to the PC.
+- `TruckNav Connector`: a Windows WPF application that detects ETS2/ATS installations, installs the telemetry plugin, builds local navigation data, calculates routes, and exposes them to paired devices over the LAN.
+- `TruckNav Mobile`: a Flutter Android application that discovers and pairs with the connector, then renders the truck position, route, maneuver, distance, ETA, speed, and speed limit.
 
-## What TruckNav Does Not Do
-
-TruckNav does not contain its own truck map engine.
-TruckNav does not calculate routes.
-TruckNav does not require accounts, cloud services, manual IP entry, or internet access.
-
-The product mirrors the navigation map rendered by ETS2/ATS. If the game is not rendering the Route Advisor/GPS region, there is nothing for V1 to capture.
-
-## Current Status
-
-This repository was bootstrapped from the master implementation specification on August 23, 2026.
-
-Phase 1 is in progress:
-
-- monorepo structure
-- documentation skeleton
-- Windows Connector solution and MVVM/theme shell
-- Flutter mobile shell and shared state/navigation skeleton
-
-The approved visual reference files expected by the specification are currently missing from the repository:
-
-- `design-reference/trucknav-mobile.html`
-- `design-reference/trucknav-connector.html`
-
-UI work in this scaffold therefore focuses on reusable tokens, navigation structure, and explicit application state, without claiming final design fidelity until those files are added.
+No account, cloud service, internet connection, manual IP entry, screen capture, or Route Advisor visibility is required during navigation. TruckNav calculates its own fastest route, so its selected roads can differ from the in-game advisor.
 
 ## Repository Layout
 
 ```text
-design-reference/   Approved HTML design references (currently missing)
-docs/               Architecture, protocol, build, test, security docs
-protocol/           Protocol version file, schemas, examples
-apps/windows/       Windows Connector solution and projects
+design-reference/   Approved HTML design references
+docs/               Architecture, protocol, build, test, and security docs
+protocol/           Protocol version, schemas, and examples
+apps/windows/       Windows Connector solution
 apps/mobile/        Flutter Android application
 scripts/            Build and test automation
-artifacts/          Local publish/build output
+artifacts/          Local publish output
 ```
 
 ## Build
@@ -61,10 +37,10 @@ pwsh ./scripts/build_android.ps1
 pwsh ./scripts/test_android.ps1
 ```
 
-See `docs/BUILDING.md` for toolchain details.
+See `docs/BUILDING.md` for toolchain details and `docs/THIRD_PARTY_NAVIGATION_REVIEW.md` for pinned-source and license provenance.
 
-## Known Limitations
+## Current Limitations
 
-- The final approved Connector and Mobile layouts cannot be matched exactly until the missing design-reference HTML files are committed.
-- Production WebRTC/H.264 transport is intentionally not faked in Phase 1. The repository isolates streaming behind interfaces so Phase 5/6 can be implemented without rewriting UI/domain code.
-- The current mobile shell is Android-first for V1, but the Flutter architecture avoids unnecessary Android-only coupling.
+- Local graph generation currently depends on a separately cloned and built `truckermudgeon/maps` tool; its GPL source and binaries are not distributed in this repository.
+- Installed third-party map mods are not supported by the validated graph-generation workflow.
+- Native route behavior has automated and offline installed-map coverage, but a live end-to-end drive with Route Advisor disabled still requires manual validation.

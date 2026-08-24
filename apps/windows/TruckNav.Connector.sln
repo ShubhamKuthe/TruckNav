@@ -9,11 +9,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckNav.Connector.App", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckNav.Connector.Core", "src\TruckNav.Connector.Core\TruckNav.Connector.Core.csproj", "{AFB88BEC-98C6-4C32-8C2D-91CA7C256DE8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckNav.Connector.Capture", "src\TruckNav.Connector.Capture\TruckNav.Connector.Capture.csproj", "{1A82C44E-AA36-480D-BE6A-B020E89C0791}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckNav.Connector.Networking", "src\TruckNav.Connector.Networking\TruckNav.Connector.Networking.csproj", "{AA9DA3B7-88BF-4E1E-B051-6E2FD1BC4BA8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckNav.Connector.Tests", "src\TruckNav.Connector.Tests\TruckNav.Connector.Tests.csproj", "{7FE0B177-E2CC-45DE-8927-7B1C3946713D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckNav.Connector.Navigation", "src\TruckNav.Connector.Navigation\TruckNav.Connector.Navigation.csproj", "{E5B82C70-2F34-4868-9A37-10C38BB90AC2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,18 +49,6 @@ Global
 		{AFB88BEC-98C6-4C32-8C2D-91CA7C256DE8}.Release|x64.Build.0 = Release|Any CPU
 		{AFB88BEC-98C6-4C32-8C2D-91CA7C256DE8}.Release|x86.ActiveCfg = Release|Any CPU
 		{AFB88BEC-98C6-4C32-8C2D-91CA7C256DE8}.Release|x86.Build.0 = Release|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Debug|x64.Build.0 = Debug|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Debug|x86.Build.0 = Debug|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Release|x64.ActiveCfg = Release|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Release|x64.Build.0 = Release|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Release|x86.ActiveCfg = Release|Any CPU
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791}.Release|x86.Build.0 = Release|Any CPU
 		{AA9DA3B7-88BF-4E1E-B051-6E2FD1BC4BA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AA9DA3B7-88BF-4E1E-B051-6E2FD1BC4BA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA9DA3B7-88BF-4E1E-B051-6E2FD1BC4BA8}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -85,6 +73,18 @@ Global
 		{7FE0B177-E2CC-45DE-8927-7B1C3946713D}.Release|x64.Build.0 = Release|Any CPU
 		{7FE0B177-E2CC-45DE-8927-7B1C3946713D}.Release|x86.ActiveCfg = Release|Any CPU
 		{7FE0B177-E2CC-45DE-8927-7B1C3946713D}.Release|x86.Build.0 = Release|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Debug|x64.Build.0 = Debug|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Debug|x86.Build.0 = Debug|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Release|x64.ActiveCfg = Release|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Release|x64.Build.0 = Release|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Release|x86.ActiveCfg = Release|Any CPU
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -92,8 +92,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{90701FED-1269-4CBA-B937-BEE660D46DD6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{AFB88BEC-98C6-4C32-8C2D-91CA7C256DE8} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{1A82C44E-AA36-480D-BE6A-B020E89C0791} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{AA9DA3B7-88BF-4E1E-B051-6E2FD1BC4BA8} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7FE0B177-E2CC-45DE-8927-7B1C3946713D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{E5B82C70-2F34-4868-9A37-10C38BB90AC2} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

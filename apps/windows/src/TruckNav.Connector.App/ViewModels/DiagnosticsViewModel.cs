@@ -16,42 +16,52 @@ public sealed partial class DiagnosticsViewModel : PageViewModelBase
 {
     private readonly IConnectorServer _connectorServer;
     private readonly INavigationService _navigationService;
-    private readonly IGameCaptureService _captureService;
-    private readonly IGpsCaptureProfileStore _profileStore;
-    private ConnectorSessionSnapshot _lastSessionSnapshot;
+    private readonly IGameInstallationLocator _installationLocator;
+    private readonly ITelemetryPluginInstaller _pluginInstaller;
+    private readonly INavigationDataBuilder _dataBuilder;
+    private ConnectorSessionSnapshot _sessionSnapshot;
+    private NavigationSnapshot _navigationSnapshot;
 
     public DiagnosticsViewModel(
         IConnectorServer connectorServer,
         IConnectorSessionStore sessionStore,
-        IGameCaptureService captureService,
-        IGpsCaptureProfileStore profileStore,
+        INavigationStateStore navigationStateStore,
+        IGameInstallationLocator installationLocator,
+        ITelemetryPluginInstaller pluginInstaller,
+        INavigationDataBuilder dataBuilder,
         INavigationService navigationService)
         : base(PageId.Diagnostics, "Advanced / Diagnostics")
     {
         _connectorServer = connectorServer;
-        _captureService = captureService;
-        _profileStore = profileStore;
         _navigationService = navigationService;
-        _lastSessionSnapshot = sessionStore.Snapshot;
+        _installationLocator = installationLocator;
+        _pluginInstaller = pluginInstaller;
+        _dataBuilder = dataBuilder;
+        _sessionSnapshot = sessionStore.Snapshot;
+        _navigationSnapshot = navigationStateStore.Snapshot;
 
-        Refresh(sessionStore.Snapshot);
+        Refresh();
+        _ = RefreshSetupAsync();
         sessionStore.SnapshotChanged += (_, snapshot) => Dispatch(() =>
         {
-            _lastSessionSnapshot = snapshot;
-            Refresh(snapshot);
+            _sessionSnapshot = snapshot;
+            Refresh();
         });
-        captureService.SnapshotChanged += (_, _) => Dispatch(() => Refresh(_lastSessionSnapshot));
-        profileStore.ProfilesChanged += (_, _) => Dispatch(() => Refresh(_lastSessionSnapshot));
+        navigationStateStore.SnapshotChanged += (_, snapshot) => Dispatch(() =>
+        {
+            _navigationSnapshot = snapshot;
+            Refresh();
+        });
     }
 
     [ObservableProperty]
     private string connectionDetails = string.Empty;
 
     [ObservableProperty]
-    private string streamDetails = string.Empty;
+    private string navigationDetails = string.Empty;
 
     [ObservableProperty]
-    private string captureDetails = string.Empty;
+    private string setupDetails = "Reading installed game setup...";
 
     [ObservableProperty]
     private string recentActivity = string.Empty;
@@ -59,142 +69,91 @@ public sealed partial class DiagnosticsViewModel : PageViewModelBase
     [RelayCommand]
     private void GoBack() => _navigationService.NavigateTo(PageId.Settings);
 
-    private void Refresh(ConnectorSessionSnapshot snapshot)
+    [RelayCommand]
+    private Task RefreshSetup() => RefreshSetupAsync();
+
+    private void Refresh()
     {
         var lanAddresses = GetReachableLanAddresses();
-        var localLan = lanAddresses.Count == 0
-            ? "No LAN address"
-            : string.Join(", ", lanAddresses);
+        var localLan = lanAddresses.Count == 0 ? "No LAN address" : string.Join(", ", lanAddresses);
         var listenerPort = _connectorServer.ServiceUri?.Port.ToString() ?? "Starting";
-        var activePeer = snapshot.ActiveMobileDevice?.DeviceName ?? "None";
-        var activePeerPlatform = snapshot.ActiveMobileDevice?.Platform ?? "—";
 
         ConnectionDetails =
             $"Local LAN      {localLan}{Environment.NewLine}" +
             $"Listener Port  {listenerPort}{Environment.NewLine}" +
-            $"Peer           {activePeer}{Environment.NewLine}" +
-            $"Peer Platform  {activePeerPlatform}{Environment.NewLine}" +
-            $"Protocol       v{snapshot.LocalConnector.ProtocolVersion}";
+            $"Peer           {_sessionSnapshot.ActiveMobileDevice?.DeviceName ?? "None"}{Environment.NewLine}" +
+            $"Protocol       v{_sessionSnapshot.LocalConnector.ProtocolVersion}{Environment.NewLine}" +
+            $"Capabilities   {string.Join(", ", _sessionSnapshot.LocalConnector.Capabilities)}";
 
-        var streamState = snapshot.DeviceState switch
-        {
-            DeviceConnectionState.Connected => snapshot.GameDetection.RunningGames.Count == 0
-                ? "Waiting for game"
-                : "Waiting for GPS capture configuration",
-            DeviceConnectionState.Reconnecting => "Waiting for reconnect",
-            _ => "Waiting for device"
-        };
-
-        StreamDetails =
-            $"State          {streamState}{Environment.NewLine}" +
-            $"App Version    {snapshot.LocalConnector.AppVersion}{Environment.NewLine}" +
-            $"Transport      WebSocket control{Environment.NewLine}" +
-            $"Video          Not implemented in Phase 4";
-
-        CaptureDetails = BuildCaptureDetails(snapshot.GameDetection, _captureService.CurrentSnapshot, _profileStore.GetAll());
+        var telemetry = _navigationSnapshot.Telemetry;
+        var route = _navigationSnapshot.Route;
+        var progress = _navigationSnapshot.Progress;
+        NavigationDetails =
+            $"Status         {_navigationSnapshot.Status}{Environment.NewLine}" +
+            $"Detail         {_navigationSnapshot.StatusMessage}{Environment.NewLine}" +
+            $"MMF Connected  {telemetry.Connected}{Environment.NewLine}" +
+            $"Game           {telemetry.Game} {telemetry.GameVersion}{Environment.NewLine}" +
+            $"Plugin Rev     {telemetry.PluginRevision}{Environment.NewLine}" +
+            $"Timestamp      {telemetry.GameTimestamp}{Environment.NewLine}" +
+            $"Position       {telemetry.Position.X:0.00}, {telemetry.Position.Z:0.00}{Environment.NewLine}" +
+            $"Destination    {telemetry.DestinationKey}{Environment.NewLine}" +
+            $"Route          {route?.RouteId ?? "None"}{Environment.NewLine}" +
+            $"Route Revision {_navigationSnapshot.RouteRevision}{Environment.NewLine}" +
+            $"Route Points   {route?.Points.Count ?? 0:N0}{Environment.NewLine}" +
+            $"Segment        {progress?.SegmentIndex.ToString() ?? "None"}{Environment.NewLine}" +
+            $"Off Route      {progress?.IsOffRoute.ToString() ?? "False"}";
 
         RecentActivity =
-            $"Updated        {snapshot.LastUpdatedUtc:HH:mm:ss 'UTC'}{Environment.NewLine}" +
-            $"Last Mobile    {snapshot.LastSeenMobileDevice?.DeviceName ?? "None"}{Environment.NewLine}" +
-            $"Last Issue     {snapshot.LastIssueCode ?? "None"}{Environment.NewLine}" +
-            $"Detail         {snapshot.LastIssueMessage ?? "No recent protocol issues"}";
+            $"Navigation     {_navigationSnapshot.LastUpdatedUtc:HH:mm:ss 'UTC'}{Environment.NewLine}" +
+            $"Session        {_sessionSnapshot.LastUpdatedUtc:HH:mm:ss 'UTC'}{Environment.NewLine}" +
+            $"Last Mobile    {_sessionSnapshot.LastSeenMobileDevice?.DeviceName ?? "None"}{Environment.NewLine}" +
+            $"Last Issue     {_sessionSnapshot.LastIssueCode ?? "None"}{Environment.NewLine}" +
+            $"Detail         {_sessionSnapshot.LastIssueMessage ?? "No recent protocol issues"}";
     }
 
-    private static string BuildCaptureDetails(
-        GameDetectionSnapshot detection,
-        CaptureRuntimeSnapshot capture,
-        IReadOnlyDictionary<GameType, GpsCaptureProfile> profiles)
+    private async Task RefreshSetupAsync()
     {
-        var lines = new List<string>
-        {
-            BuildGameDetectionDetails(detection),
-            string.Empty,
-            "CAPTURE",
-            $"Running       {capture.IsRunning}",
-            $"Source        {capture.Source?.DisplayName ?? "None"}",
-            $"Resolution    {(capture.FrameWidth > 0 ? $"{capture.FrameWidth} x {capture.FrameHeight}" : "None")}",
-            $"Preview FPS   {capture.PreviewFramesPerSecond:0.0}",
-            $"Error         {capture.ErrorCode}",
-            $"Detail        {capture.TechnicalDetail ?? "None"}",
-            string.Empty,
-            "SAVED PROFILES"
-        };
-
+        var installations = await Task.Run(() => _installationLocator.FindInstallations());
+        var lines = new List<string>();
         foreach (var definition in SupportedGameCatalog.All)
         {
-            if (!profiles.TryGetValue(definition.GameType, out var profile))
-            {
-                lines.Add($"{definition.DisplayName}  Not configured");
-                continue;
-            }
-
-            lines.Add($"{definition.DisplayName}  Configured");
-            lines.Add($"Source        {profile.SourceType} / {profile.SourceId}");
-            lines.Add($"Reference     {profile.ReferenceSourceWidth} x {profile.ReferenceSourceHeight}");
-            lines.Add($"Crop          {profile.NormalizedX:0.0000}, {profile.NormalizedY:0.0000}, {profile.NormalizedWidth:0.0000}, {profile.NormalizedHeight:0.0000}");
-        }
-
-        return string.Join(Environment.NewLine, lines);
-    }
-
-    private static string BuildGameDetectionDetails(GameDetectionSnapshot snapshot)
-    {
-        var lines = new List<string>
-        {
-            "GAME DETECTION"
-        };
-
-        foreach (var definition in SupportedGameCatalog.All)
-        {
-            var runningGame = snapshot.GetGame(definition.GameType);
-            lines.Add(definition.DisplayName);
-            lines.Add(runningGame is null ? "Not running" : "Running");
-
-            if (runningGame is null)
-            {
-                lines.Add(string.Empty);
-                continue;
-            }
-
-            lines.Add(runningGame.WindowAvailable ? "Window available" : "Window not available yet");
-            lines.Add($"PID           {runningGame.ProcessId}");
-            lines.Add($"Process       {runningGame.ProcessName}");
-            lines.Add($"Handle        0x{runningGame.WindowHandle.ToInt64():X}");
-            lines.Add($"Title         {runningGame.WindowTitle ?? "No window title yet"}");
+            var installation = installations.FirstOrDefault(value => value.Game == definition.GameType);
+            var plugin = await Task.Run(() => _pluginInstaller.GetStatus(definition.GameType));
+            var data = await _dataBuilder.GetStatusAsync(definition.GameType);
+            lines.Add(definition.DisplayName.ToUpperInvariant());
+            lines.Add($"Installed      {installation is not null}");
+            lines.Add($"Version        {installation?.Version ?? "None"}");
+            lines.Add($"Path           {installation?.InstallPath ?? "None"}");
+            lines.Add($"Plugin         {plugin.Message}");
+            lines.Add($"Graph          {data.Message}");
+            lines.Add($"Nodes / Edges  {data.NodeCount:N0} / {data.EdgeCount:N0}");
             lines.Add(string.Empty);
         }
 
-        return string.Join(Environment.NewLine, lines).TrimEnd();
+        Dispatch(() => SetupDetails = string.Join(Environment.NewLine, lines).TrimEnd());
     }
 
-    private static IReadOnlyList<string> GetReachableLanAddresses()
-    {
-        return NetworkInterface.GetAllNetworkInterfaces()
-            .Where(networkInterface =>
-                networkInterface.OperationalStatus == OperationalStatus.Up &&
-                networkInterface.NetworkInterfaceType is not NetworkInterfaceType.Loopback and
-                    not NetworkInterfaceType.Tunnel)
-            .SelectMany(networkInterface => networkInterface.GetIPProperties().UnicastAddresses)
-            .Select(unicastAddress => unicastAddress.Address)
-            .Where(address =>
-                !IPAddress.IsLoopback(address) &&
-                !address.IsIPv6LinkLocal &&
-                !(address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
-                  address.GetAddressBytes() is [169, 254, ..]))
-            .Select(address => address.ToString())
+    private static IReadOnlyList<string> GetReachableLanAddresses() =>
+        NetworkInterface.GetAllNetworkInterfaces()
+            .Where(value => value.OperationalStatus == OperationalStatus.Up &&
+                            value.NetworkInterfaceType is not NetworkInterfaceType.Loopback and not NetworkInterfaceType.Tunnel)
+            .SelectMany(value => value.GetIPProperties().UnicastAddresses)
+            .Select(value => value.Address)
+            .Where(value => !IPAddress.IsLoopback(value) && !value.IsIPv6LinkLocal)
+            .Select(value => value.ToString())
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(address => address, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
     private static void Dispatch(Action action)
     {
         if (Application.Current.Dispatcher.CheckAccess())
         {
             action();
-            return;
         }
-
-        Application.Current.Dispatcher.Invoke(action);
+        else
+        {
+            Application.Current.Dispatcher.Invoke(action);
+        }
     }
 }

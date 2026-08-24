@@ -201,6 +201,12 @@ class SessionController extends Notifier<SessionState> {
       connectionError: null,
       weakConnection: false,
       notice: null,
+      telemetry: reconnectAttempt
+          ? state.telemetry
+          : const NativeTelemetryState.disconnected(),
+      route: reconnectAttempt ? state.route : const NativeRouteState.empty(),
+      routeProgress: reconnectAttempt ? state.routeProgress : null,
+      visualMapConnection: null,
     );
 
     final result = await _connectorClient.connect(
@@ -212,7 +218,7 @@ class SessionController extends Notifier<SessionState> {
     );
 
     switch (result) {
-      case ConnectorConnectSuccess():
+      case ConnectorConnectSuccess(:final visualMapConnection):
         _reconnectAttempt = 0;
         await _preferencesStore.saveLastConnectedConnector(connector);
         developer.log(
@@ -233,6 +239,7 @@ class SessionController extends Notifier<SessionState> {
           runningGame: TruckGame.none,
           selectedGame: TruckGame.none,
           weakConnection: false,
+          visualMapConnection: visualMapConnection,
           lastConnectedDeviceId: connector.id,
           connectionError: null,
           notice: previousStage == ConnectionStage.reconnecting
@@ -278,8 +285,7 @@ class SessionController extends Notifier<SessionState> {
 
   void openGps() {
     state = state.copyWith(
-      connectionStage: ConnectionStage.waitingForStream,
-      lastCommandLabel: null,
+      connectionStage: ConnectionStage.waitingForNavigation,
     );
   }
 
@@ -306,6 +312,10 @@ class SessionController extends Notifier<SessionState> {
       selectedGame: TruckGame.none,
       weakConnection: false,
       connectionError: null,
+      telemetry: const NativeTelemetryState.disconnected(),
+      route: const NativeRouteState.empty(),
+      routeProgress: null,
+      visualMapConnection: null,
       connectionStage: state.availableConnectors.isEmpty
           ? ConnectionStage.noPcFound
           : ConnectionStage.discovering,
@@ -322,18 +332,6 @@ class SessionController extends Notifier<SessionState> {
   void toggleAutoOpenRunningGame(bool value) {
     state = state.copyWith(autoOpenRunningGame: value);
     unawaited(_preferencesStore.saveAutoOpenRunningGame(value));
-  }
-
-  void sendCommand(NavigationCommandKind command) {
-    final label = commandLabel(command);
-    final notice = command == NavigationCommandKind.cycleNavigationView
-        ? const SessionNotice(
-            kind: SessionNoticeKind.info,
-            message: 'Navigation view placeholder control fired',
-          )
-        : SessionNotice(kind: SessionNoticeKind.info, message: label);
-
-    state = state.copyWith(lastCommandLabel: label, notice: notice);
   }
 
   void clearNotice() {
@@ -425,8 +423,8 @@ class SessionController extends Notifier<SessionState> {
 
         if (nextSelectedGame != TruckGame.none &&
             !gameState.isRunning(nextSelectedGame) &&
-            nextStage == ConnectionStage.streaming) {
-          nextStage = ConnectionStage.waitingForStream;
+            nextStage == ConnectionStage.navigating) {
+          nextStage = ConnectionStage.waitingForNavigation;
         }
 
         if (state.autoOpenRunningGame &&
@@ -434,7 +432,7 @@ class SessionController extends Notifier<SessionState> {
             nextSelectedGame == TruckGame.none &&
             runningGame != TruckGame.none) {
           nextSelectedGame = runningGame;
-          nextStage = ConnectionStage.waitingForStream;
+          nextStage = ConnectionStage.waitingForNavigation;
         }
 
         state = state.copyWith(
@@ -443,6 +441,33 @@ class SessionController extends Notifier<SessionState> {
           selectedGame: nextSelectedGame,
           connectionStage: nextStage,
         );
+      case ConnectorClientTelemetryUpdated(:final telemetry):
+        var nextStage = state.connectionStage;
+        if (telemetry.connected &&
+            nextStage == ConnectionStage.waitingForNavigation) {
+          nextStage = ConnectionStage.navigating;
+        } else if (!telemetry.connected &&
+            nextStage == ConnectionStage.navigating) {
+          nextStage = ConnectionStage.waitingForNavigation;
+        }
+
+        state = state.copyWith(
+          telemetry: telemetry,
+          runningGame: telemetry.connected ? telemetry.game : state.runningGame,
+          connectionStage: nextStage,
+        );
+      case ConnectorClientRouteUpdated(:final route):
+        final preserveProgress =
+            route.available && route.routeId == state.routeProgress?.routeId;
+        state = state.copyWith(
+          route: route,
+          routeProgress: preserveProgress ? state.routeProgress : null,
+        );
+      case ConnectorClientRouteProgressUpdated(:final progress):
+        if (!state.route.available || state.route.routeId != progress.routeId) {
+          return;
+        }
+        state = state.copyWith(routeProgress: progress);
       case ConnectorClientWeakConnectionChanged(:final isWeak):
         state = state.copyWith(
           weakConnection: isWeak,
@@ -470,6 +495,8 @@ class SessionController extends Notifier<SessionState> {
             connectionStage: ConnectionStage.reconnecting,
             weakConnection: false,
             connectionError: reason,
+            telemetry: const NativeTelemetryState.disconnected(),
+            visualMapConnection: null,
           );
           _scheduleReconnect();
         } else {
@@ -477,6 +504,10 @@ class SessionController extends Notifier<SessionState> {
             connectionStage: ConnectionStage.connectionFailed,
             weakConnection: false,
             connectionError: reason,
+            telemetry: const NativeTelemetryState.disconnected(),
+            route: const NativeRouteState.empty(),
+            routeProgress: null,
+            visualMapConnection: null,
           );
         }
     }
@@ -494,8 +525,8 @@ class SessionController extends Notifier<SessionState> {
 
     if (state.selectedConnector?.id == request.connector.id &&
         (state.connectionStage == ConnectionStage.gameSelection ||
-            state.connectionStage == ConnectionStage.waitingForStream ||
-            state.connectionStage == ConnectionStage.streaming)) {
+            state.connectionStage == ConnectionStage.waitingForNavigation ||
+            state.connectionStage == ConnectionStage.navigating)) {
       state = state.copyWith(
         notice: SessionNotice(
           kind: SessionNoticeKind.success,

@@ -16,13 +16,13 @@ public sealed record ConnectorUiState
 
     public bool RememberPreviousDevices { get; init; } = true;
 
-    public bool StartStreamingAutomatically { get; init; } = true;
+    public bool StartNavigationAutomatically { get; init; } = true;
 
-    public bool HardwareAcceleration { get; init; } = true;
+    public bool RouteRenderingAcceleration { get; init; } = true;
 
     public bool ShowConnectionNotifications { get; init; } = true;
 
     public bool ShowGameDetectionNotifications { get; init; } = true;
 
-    public bool ShowStreamingNotifications { get; init; }
+    public bool ShowNavigationNotifications { get; init; }
 }

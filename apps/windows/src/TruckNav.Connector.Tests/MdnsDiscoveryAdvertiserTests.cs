@@ -2,6 +2,7 @@ using Makaretu.Dns;
 using TruckNav.Connector.Networking;
 using TruckNav.Connector.Networking.Discovery;
 using TruckNav.Connector.Networking.Models;
+using TruckNav.Connector.Networking.Protocol;
 
 namespace TruckNav.Connector.Tests;
 
@@ -11,7 +12,7 @@ public sealed class MdnsDiscoveryAdvertiserTests
     public void CreateServiceProfile_ShouldPublishExpectedDiscoveryShape()
     {
         var identity = new ConnectorPeerInfo(
-            ProtocolVersion: 1,
+            ProtocolVersion: ProtocolCompatibility.CurrentVersion,
             AppVersion: "0.1.0",
             DeviceId: "12345678-1234-1234-1234-1234567890ab",
             DeviceName: "ROCK",

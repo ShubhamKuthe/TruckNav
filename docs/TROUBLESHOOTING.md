@@ -1,52 +1,68 @@
 # Troubleshooting
 
-## Windows Build
+## Game Detected But Telemetry Disconnected
 
-- Install the .NET 8 SDK and Windows 10 SDK 19041 or newer.
-- Run commands from the repository root.
-- If WPF/WinRT references fail to restore, run `dotnet restore apps/windows/TruckNav.Connector.sln` and rebuild.
+- Open Games & Map Data and confirm the plugin reports installed/current.
+- Verify `trucksim-gps-telemetry.dll` exists in `<game>\bin\win_x64\plugins`.
+- Fully restart the game after installing/updating the plugin.
+- Accept the SCS SDK warning on game startup.
+- Check Diagnostics for MMF connected, plugin revision, and timestamp.
+- `Local\TSGPSTelemetry` exists only while the plugin/game SDK is active; TruckNav never fakes it.
 
-## Game Running But Window Unavailable
+## Steam Game On Another Drive
 
-- Wait until the simulator has created its main game window; process detection can occur earlier.
-- Return to GPS Capture and choose Check Again.
-- If the game changed rendering mode or restarted, its HWND may have changed. Retry after Phase 3 reports the new window.
-- TruckNav does not persist an HWND in the GPS profile.
+TruckNav reads Steam registry paths, `libraryfolders.vdf`, and app manifests. If detection still fails, click Choose Folder and select the game root containing `bin\win_x64\eurotrucks2.exe` or `amtrucks.exe`.
 
-## Blank Or Unavailable Preview
+## Plugin Installation Fails
 
-- Restore the game if it is minimized. Windows Graphics Capture does not reliably capture minimized windows.
-- Try windowed or borderless mode. Exclusive fullscreen support varies by Windows, renderer, GPU driver, and protected-content behavior.
-- Click Try Again after the game is visible.
-- If direct window capture remains unavailable, explicitly choose the correct monitor as a fallback. Monitor capture can include anything visible on that display, so use it only when needed.
+- Close ETS2/ATS before installation.
+- Confirm the selected game folder is writable.
+- The installer touches only the TruckNav DLL and provenance file in `bin\win_x64\plugins`.
+- Reinstall Connector if its bundled `ThirdParty\TruckSimGpsTelemetry` DLL/license is missing.
 
-## Multiple Monitors
+## Navigation Data Build Fails
 
-- Automatic game-window capture is preferred and does not require TruckNav to be on the same monitor.
-- Monitor fallback dimensions are physical pixels. The app is Per-Monitor-V2 DPI aware.
-- If a monitor is added, removed, rotated, or has its scale changed, reopen calibration and refresh the source list.
+- Close the game before generation.
+- Confirm Node/npm and the external `truckermudgeon/maps` tool are available. Set `TRUCKNAV_MAPS_TOOL` to its local clone when it is not in the documented development location.
+- Review `%LOCALAPPDATA%\TruckNav\navigation\<game>\generation.log`.
+- The parser needs substantial memory; TruckNav sets Node's old-space limit to 8 GiB.
+- Rebuild after game updates or DLC changes when the cache is reported stale.
 
-## Resolution Changed
+## Destination Or Route Unavailable
 
-- TruckNav warns only after a greater-than-five-percent size change remains stable for at least 750 ms across three observations.
-- Keep Current retains the normalized crop and applies it to the new dimensions.
-- Review GPS Area opens the live selection with the old normalized crop projected into the new frame.
-- One-pixel changes and brief launch/alt-tab transitions should not trigger a warning.
+- Select a Freight Market job or accept a delivery. Before the trailer is attached, TruckNav routes to the source depot; after attachment, it switches to the delivery depot. Plain free roam has no destination.
+- Destination lookup requires exact game city/company tokens, with exact unambiguous display names as fallback. TruckNav intentionally does not fuzzy-guess a depot.
+- A disconnected graph component, unsupported ferry/mod edge, or generator limitation can produce no route; Diagnostics shows the resolved state.
 
-## Windows DPI Scaling
+## HEN Says Map Data Unavailable
 
-- The selection is stored in captured-frame pixels and normalized values, not WPF DIPs.
-- At 125%, 150%, 175%, or 200% scaling, the overlay maps through the actual uniformly rendered image bounds.
-- If changing scale while calibration is open produces stale layout, close and reopen GPS Capture so Windows and WPF refresh the monitor transform.
+- Open ROCK's Navigation page and check Visual Map separately from Navigation Graph.
+- Click Build Map or Rebuild Map Data for the selected game. The game should be closed if parser data also needs regeneration.
+- Confirm `%LOCALAPPDATA%\TruckNav\map\<game>\trucknav-visual-map-v1.bin` exists and is not marked stale.
+- Pair HEN again after updating either app so the active session receives a fresh map token.
+- TruckNav intentionally does not fall back to sparse routing-graph lines.
 
-## Game Closed During Calibration
+## Third-Party Map Mods
 
-- TruckNav stops capture and reports that the selected game is no longer running.
-- The current unsaved rectangle remains available in memory while the wizard is open.
-- Restart the game, choose Check Again, and retry capture.
+Base games and installed official map DLCs are targeted. ProMods and other third-party map mods are not guaranteed and may put the truck/destination on roads absent from the cache. Disable the mod or generate compatible data in a future mod-aware workflow.
 
-## Flutter And LAN
+## Truck Arrow Offset Or Jitter
 
-- Phase 4 does not transmit video to Android. The mobile GPS surface should continue showing its honest waiting state.
-- For Android build problems, confirm `flutter --version`, run `flutter doctor`, and use Java 17 or newer for release packaging.
-- For discovery/connectivity issues, ensure both devices are on the same LAN and TruckNav Connector is allowed on the Windows Private network profile.
+- Confirm cache game version/DLC signature matches the running installation.
+- A consistent road offset indicates a coordinate/import mismatch; record X/Z and a recognizable location from Diagnostics.
+- Short jitter is smoothed over 90 ms. Jumps of 2 km or more intentionally snap as teleport/quick travel.
+- Verify the game does not use an unsupported map mod.
+
+## Phone Cannot Connect Or Reconnect
+
+- ROCK and HEN must be on the same LAN; avoid guest/client-isolated Wi-Fi.
+- Allow TruckNav Connector on the Windows Private network firewall profile.
+- Protocol v2 must be installed on both PC and phone.
+- Confirm `_trucknav._tcp.local` discovery and the listener port in Diagnostics.
+- Only one mobile session can be active.
+
+## Build Problems
+
+- Use .NET 8+ with Windows SDK 19041+ for WPF.
+- Run `dotnet restore apps/windows/TruckNav.Connector.sln` before rebuilding.
+- Use Flutter 3.44/Dart 3.12 compatible tooling and Java 17+ for Android release packaging.

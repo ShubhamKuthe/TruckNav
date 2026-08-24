@@ -11,7 +11,7 @@
                        Text="Advanced / Diagnostics"
                        Style="{StaticResource PageHeadingTextStyle}" />
             <TextBlock Margin="0,4,0,0"
-                       Text="For troubleshooting only — not needed for normal use."
+                       Text="Native telemetry, graph, routing, and LAN protocol details."
                        Style="{StaticResource BodyTextStyle}" />
 
             <ItemsControl Margin="0,16,0,0">
@@ -32,9 +32,9 @@
                 </Border>
                 <Border Margin="0,0,0,12" Style="{StaticResource TruckNavCardStyle}">
                     <StackPanel>
-                        <TextBlock Text="Stream" Style="{StaticResource CardTitleTextStyle}" />
+                        <TextBlock Text="Native Navigation" Style="{StaticResource CardTitleTextStyle}" />
                         <TextBlock Margin="0,10,0,0"
-                                   Text="{Binding StreamDetails}"
+                                   Text="{Binding NavigationDetails}"
                                    FontFamily="Consolas"
                                    FontSize="11.5"
                                    Foreground="{StaticResource SecondaryTextBrush}" />
@@ -44,9 +44,12 @@
 
             <Border Margin="0,0,0,12" Style="{StaticResource TruckNavCardStyle}">
                 <StackPanel>
-                    <TextBlock Text="Capture" Style="{StaticResource CardTitleTextStyle}" />
+                    <Grid>
+                        <TextBlock Text="Game Setup" Style="{StaticResource CardTitleTextStyle}" />
+                        <Button HorizontalAlignment="Right" Content="Refresh" Command="{Binding RefreshSetupCommand}" Style="{StaticResource TruckNavButtonStyle}" />
+                    </Grid>
                     <TextBlock Margin="0,10,0,0"
-                               Text="{Binding CaptureDetails}"
+                               Text="{Binding SetupDetails}"
                                FontFamily="Consolas"
                                FontSize="11.5"
                                Foreground="{StaticResource SecondaryTextBrush}" />

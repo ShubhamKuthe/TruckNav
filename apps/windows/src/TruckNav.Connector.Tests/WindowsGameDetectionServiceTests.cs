@@ -1,4 +1,4 @@
-using TruckNav.Connector.Capture;
+using TruckNav.Connector.Navigation.Detection;
 using TruckNav.Connector.Core.Enums;
 using TruckNav.Connector.Core.Models;
 

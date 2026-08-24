@@ -56,9 +56,7 @@ abstract interface class LocalNetworkPermissionService {
 
 class MethodChannelLocalNetworkPermissionService
     implements LocalNetworkPermissionService {
-  static const MethodChannel _channel = MethodChannel(
-    'trucknav/local_network',
-  );
+  static const MethodChannel _channel = MethodChannel('trucknav/local_network');
 
   @override
   Future<LocalNetworkPermissionState> ensureDiscoveryAccess() async {

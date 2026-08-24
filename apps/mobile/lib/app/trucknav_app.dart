@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/trucknav_theme.dart';
+import '../core/theme/system_ui_overlay.dart';
 import 'router.dart';
 
 class TruckNavApp extends StatelessWidget {
@@ -12,6 +13,8 @@ class TruckNavApp extends StatelessWidget {
       title: 'TruckNav',
       debugShowCheckedModeBanner: false,
       theme: TruckNavTheme.theme,
+      builder: (context, child) =>
+          ThemeAwareSystemUi(child: child ?? const SizedBox.shrink()),
       routerConfig: appRouter,
     );
   }

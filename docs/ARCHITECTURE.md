@@ -2,103 +2,89 @@
 
 ## Product Boundary
 
-TruckNav mirrors the real ETS2/ATS Route Advisor navigation surface. It does not ship a road graph, routing engine, cloud backend, generated map, or fake production map rendering.
-
-Phase 4 ends at local Windows capture and crop calibration. Captured pixels are not sent to Android yet, and a configured GPS area must not be described as streaming.
-
-## Current System Shape
+TruckNav is an external native GPS for Euro Truck Simulator 2 and American Truck Simulator. It does not capture, crop, mirror, or decode the in-game Route Advisor. TruckNav calculates its own route to the active delivery destination, so its selected roads can differ from the game's route.
 
 ```text
-WindowsGameDetectionService (Phase 3)
-        |
-        v
-RunningGameInfo: GameType / PID / HWND / window state
-        |
-        v
-WindowsGraphicsCaptureService
-        |
-        +-- automatic game-window source
-        +-- explicit monitor fallback
-        |
-        v
-Windows.Graphics.Capture frame pool (2 buffers)
-        |
-        v
-VideoFrame (owned BGRA8 managed preview snapshot)
-        |
-        +-- reusable WPF selection overlay
-        +-- real crop preview
-        |
-        v
-normalized GpsCaptureProfile per game
+ETS2 / ATS
+    |
+    v
+SCS telemetry DLL (MIT)
+    |
+    v
+Local\TSGPSTelemetry shared memory
+    |
+    v
+TruckNav Connector
+    +-- live truck and job state
+    +-- installed-game routing graph (A* only)
+    +-- installed-game visual dataset (rendering only)
+    |
+    +-- exact destination resolver + directed A*
+    +-- compact vector feature cache + LOD tile index
+    |
+    v
+existing ROCK <-> HEN WebSocket + authenticated map HTTP endpoints
+    |
+    v
+Flutter local vector map + independent route/truck overlay
 ```
 
-The Phase 2 LAN discovery, protocol, and session services continue independently. Phase 3 game state still synchronizes to Android. Phase 4 adds no video protocol messages.
+Everything remains local to the PC or LAN. There is no cloud account, analytics, external routing API, Google Maps, OpenStreetMap routing, or telemetry upload.
 
-## Capture Boundary
+## Windows Projects
 
-`IGameCaptureService` remains the boundary consumed by the WPF calibration ViewModel. Production dependency injection registers `WindowsGraphicsCaptureService`; `MockGameCaptureService` is development/test only.
+- `TruckNav.Connector.Core`: platform-independent navigation models and interfaces.
+- `TruckNav.Connector.Navigation`: game detection, Steam discovery, plugin setup, shared-memory telemetry, graph import/cache, spatial index, destination lookup, A*, and route progress.
+- `TruckNav.Connector.Networking`: mDNS, WebSocket session, protocol validation, and coalesced navigation broadcast.
+- `TruckNav.Connector.App`: WPF setup, status, games, navigation, settings, and diagnostics UI.
+- `TruckNav.Connector.Tests`: protocol, LAN, telemetry, routing, progress, identity, and game-detection tests.
 
-Native and WinRT interop stays inside `TruckNav.Connector.Capture`:
+The obsolete `TruckNav.Connector.Capture` project and all video/crop production code were removed after the native pipeline passed.
 
-- `IGraphicsCaptureItemInterop.CreateForWindow` creates a `GraphicsCaptureItem` from the HWND supplied by Phase 3.
-- `CreateForMonitor` is used only after the user explicitly chooses a display fallback.
-- `D3D11CreateDevice` creates a BGRA-capable Direct3D 11 device, with WARP fallback if hardware creation fails.
-- `CreateDirect3D11DeviceFromDXGIDevice` exposes that device to Windows Graphics Capture.
-- `Direct3D11CaptureFramePool.CreateFreeThreaded` supplies frame-driven callbacks without a WPF dispatcher dependency.
+## Telemetry
 
-The frame pool contains two buffers. Incoming frames are discarded while one GPU-to-CPU preview conversion is active. Capture is throttled to about 20 FPS, and the WPF side retains one latest pending frame. There is no unbounded queue and stale previews are preferred for dropping.
+The pinned TruckSim-GPS plugin writes revision 12 into `Local\TSGPSTelemetry` (32 KiB). TruckNav opens the existing map read-only and never creates a fake map. The reader validates revision and timestamps before publishing a snapshot.
 
-`SoftwareBitmap.CreateCopyFromSurfaceAsync` performs the Phase 4 WPF preview copy. Row pitch is read from `BitmapBuffer`, and each emitted `VideoFrame` owns a tightly packed BGRA8 byte array. Native frame/surface lifetime ends inside the capture provider. A later streaming phase can consume native surfaces directly without changing WPF or protocol code.
+Fields include SDK/game state, pause, game version, X/Y/Z, heading, speed, speed limit, active job, source/destination city and company IDs/names, game navigation distance/time, and game timestamp. Polling is 20 Hz on a hosted background service. Transitions are logged, not every coordinate.
 
-## Capture Sources
+## Installed Game And Plugin Setup
 
-Game capture sources have stable logical IDs such as `game:EuroTruckSimulator2`; saved profiles do not persist a transient HWND. The current HWND is always obtained from `IGameDetectionService`.
+Steam libraries are discovered from the registry, `libraryfolders.vdf`, and `appmanifest_227300.acf` / `appmanifest_270880.acf`. Additional drives are supported. A validated manual folder fallback is stored at `%LOCALAPPDATA%\TruckNav\game-paths.json`.
 
-Monitor enumeration is behind `IWindowsMonitorProvider`. Win32 monitor bounds are physical pixels because the WPF executable declares Per-Monitor-V2 DPI awareness. The definitive source size still comes from `GraphicsCaptureItem.Size` and captured frames.
+The Games page installs only `trucksim-gps-telemetry.dll` into `<game>\bin\win_x64\plugins\`. Games must be closed. The bundled binary is built from pinned MIT source and includes its license, commit, and SHA-256 provenance.
 
-## Coordinate Systems
+## Navigation Data
 
-TruckNav keeps these spaces separate:
+For this local testing build, `truckermudgeon/maps` is a separate GPL-3.0 external tool outside TruckNav. Its source and generated map data are not committed or bundled. The Games page invokes it locally and then converts its actual JSON output into TruckNav's independent compact binary format.
 
-- WPF input and layout use device-independent pixels (DIPs).
-- monitor bounds and Windows capture frames use physical pixels.
-- the selection overlay maps its uniformly fitted WPF image rectangle into captured-frame pixels.
-- saved crop values are normalized fractions from 0.0 to 1.0.
+Data lives under `%LOCALAPPDATA%\TruckNav\navigation\ets2` and `...\ats`. Metadata includes game/version, generator commit, format version, generation time, source path, and DLC signature. A game version or DLC signature mismatch invalidates the cache.
 
-No calculation assumes one WPF DIP equals one captured pixel. `CaptureCoordinateMapper` contains explicit DIP/physical conversion helpers, and `CaptureSelectionMath` clamps all move/resize operations to the captured frame with a 64 x 64 pixel minimum.
+The runtime graph stores game-world X/Z coordinates, directed forward/backward adjacency, edge distance/duration, ferry flag, one-lane flag, DLC guard, and exact city/company destinations. Telemetry and graph use the same useful game-world plane, so `GameCoordinateTransform` is intentionally identity X/Z.
 
-## Profiles
+## Visual Map Data
 
-`JsonGpsCaptureProfileStore` writes `%LOCALAPPDATA%\TruckNav\gps-capture-profiles.json`. The document stores one independent profile per `GameType` with:
+The routing graph is never used as the Release base map. A separate TruckNav visual generator reads the parser's real roads, road looks, source nodes, prefab placements/descriptions/map points, map areas, dividers, ferries, cities, and POIs. Road node rotations produce curved cubic Hermite paths. Prefab-local neighbor geometry is transformed into world X/Z, preserving roundabout rings, junction exits, ramps, service areas, and company entrances.
 
-- schema version
-- logical source type and ID
-- normalized X/Y/width/height
-- reference source width/height
-- Fill/Fit preference
-- UTC creation/update timestamps
+The compact dataset is stored at `%LOCALAPPDATA%\TruckNav\map\ets2\trucknav-visual-map-v1.bin` or the ATS equivalent. Metadata contains game type/version, `trucknav-vector-1`, generation time, DLC signature, world bounds, and LOD definitions. Version/DLC mismatch marks it stale. Read-only tiles are generated and cached on demand under `tiles-v1`; the phone never receives whole-map JSON.
 
-Writes use a same-directory temporary file followed by replacement. Invalid records and malformed JSON are rejected without crashing startup. ETS2 profiles are never reused for ATS.
+The three custom local vector levels use 32,768 m overview cells, 8,192 m normal cells, and 2,048 m close cells. Overview includes major roads, ferries, and priority cities. Normal adds junctions/prefabs and navigation POIs. Close adds minor roads, map polygons, dividers, companies, and detailed POIs.
 
-## Resolution Changes
+## Routing And Progress
 
-A source-size change is material when either dimension differs by more than five percent. It must be observed three times over at least 750 ms before the UI warns, which filters launch, minimize, alt-tab, and rendering-mode transients. Keeping the current profile retains its normalized crop. Reviewing projects the same normalized crop into the current frame.
+- A 750-meter grid spatial index gives bounded nearest-node searches and is cached per graph.
+- Destination lookup uses exact normalized city/company tokens first and an unambiguous exact display-name fallback. There is no fuzzy guess.
+- Directed A* minimizes generated edge duration with a straight-line `/ 60 m/s` admissible heuristic and a start-heading penalty.
+- Ferry/train edges are retained and surfaced as maneuvers where present.
+- Route progress projects the truck onto a local forward segment window with a global recovery fallback.
+- Off-route threshold is 80 m. Rerouting requires three samples and at least one second of stable deviation, with a 10-second cooldown.
+- A position jump of 2 km is treated as teleport/quick travel and triggers a current-position route rebuild.
 
-## Capture Lifecycle And Limitations
+Full route geometry is sent only when `RouteRevision` changes. Telemetry and progress are coalesced at up to 20 Hz, preventing an unbounded queue.
 
-Capture starts only after a running game is selected for calibration. It stops when the user returns to step 1, leaves the page, saves, the game/source closes, or the app exits.
+## Flutter GPS
 
-Windows Graphics Capture normally captures a window while it is covered by another window, but minimized windows are not reliably captured. Borderless and windowed modes are expected to work. Exclusive fullscreen behavior depends on Windows, the game renderer, GPU driver, and protected-content rules, so TruckNav does not promise every fullscreen configuration. A recreated game HWND requires retrying against the refreshed Phase 3 window state.
+The mobile GPS uses TruckNav's custom local vector tile renderer, not an online map SDK or video surface. Static tile payloads use bounded memory and Android disk caches. A separate painter renders the active route, destination, real truck pose, next maneuver, distance, ETA, speed, and speed limit above the base map.
 
-## Direct Dependencies
+The camera supports heading-up follow, world-up, fitted route overview, pinch zoom, temporary drag pan, and Recenter. A 90 ms animation interpolates between real telemetry samples using shortest-angle heading wrap. Jumps at or above 2 km snap immediately rather than animating across a teleport. Portrait and landscape follow the device layout, and the existing tap/three-second control behavior is preserved.
 
-Windows Graphics Capture uses the Windows SDK projection selected by `net8.0-windows10.0.19041.0`; no third-party screen-capture package was added.
-
-Existing direct Windows dependencies remain:
-
-- `CommunityToolkit.Mvvm` `8.4.2`
-- `Microsoft.Extensions.Hosting` `8.0.1`
-- `Makaretu.Dns.Multicast.New` `0.38.0`
-
-Existing Flutter dependencies remain unchanged by Phase 4.
+When visual data is absent or stale, Release displays `Map data unavailable` and asks for a ROCK map build. It never substitutes routing-graph lines, sample geometry, or simulated movement.

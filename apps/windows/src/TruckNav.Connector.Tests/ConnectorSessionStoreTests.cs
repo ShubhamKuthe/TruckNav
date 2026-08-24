@@ -4,6 +4,7 @@ using TruckNav.Connector.Networking;
 using TruckNav.Connector.Networking.Hosting;
 using TruckNav.Connector.Networking.Identity;
 using TruckNav.Connector.Networking.Models;
+using TruckNav.Connector.Networking.Protocol;
 using TruckNav.Connector.Networking.Protocol.Messages;
 using TruckNav.Connector.Networking.Session;
 using TruckNav.Connector.Networking.Storage;
@@ -139,7 +140,7 @@ public sealed class ConnectorSessionStoreTests : IDisposable
 
     private static ConnectorPeerInfo CreateRemotePeer(string deviceName = "HEN") =>
         new(
-            ProtocolVersion: 1,
+            ProtocolVersion: ProtocolCompatibility.CurrentVersion,
             AppVersion: "0.1.0",
             DeviceId: Guid.NewGuid().ToString("D"),
             DeviceName: deviceName,

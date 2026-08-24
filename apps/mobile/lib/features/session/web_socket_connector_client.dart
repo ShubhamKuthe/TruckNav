@@ -36,6 +36,7 @@ class WebSocketConnectorClient implements ConnectorClient {
   bool _emitDisconnectOnDone = true;
   String? _disconnectReason;
   String? _activeEndpoint;
+  int? _activePort;
   int _degradedPongSamples = 0;
   int _healthyPongSamples = 0;
 
@@ -79,7 +80,9 @@ class WebSocketConnectorClient implements ConnectorClient {
   Future<void> disconnect({bool intentional = true}) async {
     _intentionalClose = intentional;
     _emitDisconnectOnDone = false;
-    _disconnectReason = intentional ? truckNavIntentionalDisconnectReason : null;
+    _disconnectReason = intentional
+        ? truckNavIntentionalDisconnectReason
+        : null;
     _stopPingLoop();
 
     final channel = _channel;
@@ -91,8 +94,7 @@ class WebSocketConnectorClient implements ConnectorClient {
           status.normalClosure,
           intentional ? truckNavIntentionalDisconnectReason : null,
         );
-      } catch (_) {
-      }
+      } catch (_) {}
     }
 
     await _subscription?.cancel();
@@ -101,6 +103,7 @@ class WebSocketConnectorClient implements ConnectorClient {
     _weakConnection = false;
     _pendingPingSentAt = null;
     _activeEndpoint = null;
+    _activePort = null;
     _degradedPongSamples = 0;
     _healthyPongSamples = 0;
   }
@@ -126,7 +129,7 @@ class WebSocketConnectorClient implements ConnectorClient {
     ConnectorSummary connector,
     String host,
   ) async {
-    _prepareForConnect(host);
+    _prepareForConnect(host, connector.port);
     final uri = Uri(
       scheme: 'ws',
       host: host,
@@ -180,13 +183,14 @@ class WebSocketConnectorClient implements ConnectorClient {
     }
   }
 
-  void _prepareForConnect(String host) {
+  void _prepareForConnect(String host, int port) {
     _intentionalClose = false;
     _emitDisconnectOnDone = true;
     _disconnectReason = null;
     _weakConnection = false;
     _pendingPingSentAt = null;
     _activeEndpoint = host;
+    _activePort = port;
     _degradedPongSamples = 0;
     _healthyPongSamples = 0;
     _handshakeCompleter = Completer<ConnectorConnectResult>();
@@ -236,7 +240,14 @@ class WebSocketConnectorClient implements ConnectorClient {
               name: 'TruckNav.Session',
             );
             _handshakeCompleter!.complete(
-              ConnectorConnectSuccess(peerIdentity),
+              ConnectorConnectSuccess(
+                peerIdentity,
+                VisualMapConnection(
+                  host: _activeEndpoint ?? '',
+                  port: _activePort ?? 0,
+                  accessToken: peerIdentity.mapAccessToken,
+                ),
+              ),
             );
           }
         case ErrorProtocolMessage(:final code, :final message):
@@ -251,6 +262,12 @@ class WebSocketConnectorClient implements ConnectorClient {
           _eventsController.add(
             ConnectorClientGameStateUpdated(_toSupportedGameState(games)),
           );
+        case TelemetryStateProtocolMessage(:final telemetry):
+          _eventsController.add(ConnectorClientTelemetryUpdated(telemetry));
+        case RouteStateProtocolMessage(:final route):
+          _eventsController.add(ConnectorClientRouteUpdated(route));
+        case RouteProgressProtocolMessage(:final progress):
+          _eventsController.add(ConnectorClientRouteProgressUpdated(progress));
       }
     } on FormatException catch (exception) {
       if (!(_handshakeCompleter?.isCompleted ?? true)) {
@@ -360,9 +377,7 @@ class WebSocketConnectorClient implements ConnectorClient {
       _healthyPongSamples = 0;
       if (_degradedPongSamples >= _weakSamplesToRaise && !_weakConnection) {
         _weakConnection = true;
-        _eventsController.add(
-          const ConnectorClientWeakConnectionChanged(true),
-        );
+        _eventsController.add(const ConnectorClientWeakConnectionChanged(true));
       }
       return;
     }
@@ -410,6 +425,7 @@ class WebSocketConnectorClient implements ConnectorClient {
     _weakConnection = false;
     _pendingPingSentAt = null;
     _activeEndpoint = null;
+    _activePort = null;
     _degradedPongSamples = 0;
     _healthyPongSamples = 0;
   }
@@ -429,9 +445,6 @@ class WebSocketConnectorClient implements ConnectorClient {
       }
     }
 
-    return SupportedGameState(
-      ets2Running: ets2Running,
-      atsRunning: atsRunning,
-    );
+    return SupportedGameState(ets2Running: ets2Running, atsRunning: atsRunning);
   }
 }

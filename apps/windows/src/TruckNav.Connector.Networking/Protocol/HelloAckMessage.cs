@@ -9,4 +9,5 @@ public sealed record HelloAckMessage(
     string DeviceName,
     string Role,
     string Platform,
-    IReadOnlyList<string> Capabilities) : MessageBase(ProtocolMessageType.HelloAck);
+    IReadOnlyList<string> Capabilities,
+    string MapAccessToken) : MessageBase(ProtocolMessageType.HelloAck);

@@ -1,189 +1,52 @@
 # TruckNav Protocol
 
-## Versioning
+## Version And Discovery
 
-- manifest version: `1`
-- protocol version and app version remain separate
+Protocol version 2 adds native navigation. App version remains independent at `0.1.0`. Windows advertises `_trucknav._tcp.local` with device identity, version, role, and capabilities. Current connector capabilities are `native_navigation`, `scs_telemetry`, and `local_route_graph`.
 
-Current TruckNav peers expose:
+The existing `hello` / `hello_ack`, typed errors, one-active-session rule, `ping` / `pong`, reconnect, `game_state`, and `game_state_request` behavior is preserved. Version 1 peers are intentionally rejected because they cannot parse native navigation state.
 
-- `protocolVersion`
-- `appVersion`
-- `deviceId`
-- `deviceName`
-- `role`
-- `platform`
-- `capabilities`
+Each successful `hello_ack` includes a fresh 256-bit `mapAccessToken`. It is valid only while that exact WebSocket session is active and is sent as `X-TruckNav-Map-Token` on map requests.
 
-## Discovery
+## Initial Sync
 
-Windows registers the service with Makaretu as `_trucknav._tcp`, which the library exposes as the DNS-SD browse type `_trucknav._tcp.local`.
+After an accepted hello, ROCK sends:
 
-Published metadata:
+1. `hello_ack`
+2. current `game_state`
+3. current `telemetry_state`
+4. current `route_state`, including an unavailable state when no route exists
 
-- `deviceId`
-- `deviceName`
-- `protocolVersion`
-- `appVersion`
-- `role`
-- `capabilities`
+This makes reconnect restore the latest route without waiting for the next job transition.
 
-Android discovery queries `ResourceRecordQuery.serverPointer('_trucknav._tcp.local')` and then resolves:
+## Navigation Messages
 
-- PTR service instance records
-- SRV target + port
-- TXT metadata
-- A/AAAA address records for the current host
+### telemetry_state
 
-The Android client keeps every usable resolved address for a Connector, prefers practical IPv4 LAN addresses first, and ignores unusable IPv6 link-local results instead of failing on the first address returned.
+Sent on useful telemetry/status updates, coalesced to avoid backlog. Contains game, connection/pause/job state, X/Z/elevation, heading, speed, speed limit, destination labels, game navigation distance/time, navigation status/message, and timestamp.
 
-The normal UI does not show raw IP addresses.
+### route_state
 
-## HTTP Surface
+Sent only when `routeRevision` changes or during initial sync. Contains availability, route ID, game, exact resolved destination, route points, maneuver steps, bounded nearby road geometry (`contextRoads`), verified map symbols (`mapPoints`), city labels (`mapLabels`), total distance/time, calculation timestamp, and reroute flag. A route removal is an explicit `available: false` message.
 
-Current Connector endpoints:
+Context-road entries carry endpoints plus major-road and ferry flags. Map points carry one of `Fuel`, `Rest`, `Service`, `Company`, `Garage`, `Dealer`, `Ferry`, or `WeighStation`; these values come from generated parser data or exact company destinations, never fabricated mobile-side POIs.
 
-- `GET /health`
-- `GET /info`
-- `WebSocket /ws`
+### route_progress
 
-`/health` returns:
+Sent with live progress while a route exists. Contains route ID, segment index, projected position, distance from route, remaining distance/time, next maneuver/instruction, distance to maneuver, off-route/teleport flags, and timestamp.
 
-```json
-{
-  "status": "ok"
-}
-```
+The full installed graph and full visual dataset are never transmitted. A normal telemetry tick never resends route geometry or map tiles.
 
-`/info` returns the public connector identity payload.
+## Local Visual Map Endpoints
 
-## Hello Handshake
+- `GET /map/{game}/manifest` returns game/version/generator/DLC metadata, world bounds, and LOD cell sizes.
+- `GET /map/{game}/{level}/{tileX}/{tileY}` returns a gzip-compressed read-only TruckNav vector tile.
+- Both endpoints require the active session's map token; unauthenticated, expired, or previous-session tokens return `401`.
+- Tiles contain roads, prefab roads, map polygons, ferry/train links, city labels, and verified POIs in the same game-world X/Z coordinate system as route and telemetry.
+- Responses are cacheable privately. There is no path parameter that maps directly to an arbitrary filesystem path.
 
-Android sends `hello` immediately after the WebSocket opens.
+## Validation And Transport
 
-Example:
+Client messages remain typed and size-limited to 16 KiB. The only post-handshake client messages are `ping` and `game_state_request`; unsupported input receives a typed error and closes the session. Server route messages can be larger than client control input because they carry the current polyline.
 
-```json
-{
-  "type": "hello",
-  "protocolVersion": 1,
-  "appVersion": "0.1.0",
-  "deviceId": "7ac8fc8b-9fd6-4acf-a451-e0c4d3b5a920",
-  "deviceName": "HEN",
-  "role": "mobile",
-  "platform": "android",
-  "capabilities": []
-}
-```
-
-If valid, Windows responds with `hello_ack` carrying its corresponding connector identity.
-
-If invalid, Windows returns a typed `error` and closes the socket.
-
-## Validation Rules
-
-Current validation covers:
-
-- JSON syntax
-- required `type`
-- compatible protocol version
-- UUID format for `deviceId`
-- required string fields
-- allowed `role` / `platform`
-- reasonable capability count and field lengths
-- maximum control message size of `16 KB`
-
-## Connection Health
-
-Implemented health messages:
-
-- `ping`
-- `pong`
-
-Android sends lightweight pings on an interval.
-
-Weak-connection UI no longer flips on a single slow sample.
-
-Current health thresholds live in code as explicit constants:
-
-- ping interval: `10s`
-- weak RTT threshold: `1200ms`
-- weak state after `2` consecutive degraded pong samples
-- healthy state after `2` consecutive recovered pong samples
-- pong timeout / disconnect: `25s`
-
-## Active Session Rule
-
-The Connector allows one active mobile session and one pending validated handshake reservation.
-
-If a second client attempts to connect while one is active, the Connector returns a typed:
-
-- `busy`
-
-and preserves the existing session.
-
-## Errors
-
-Typed errors currently exercised in code and tests:
-
-- `malformed_json`
-- `invalid_payload`
-- `missing_required_fields`
-- `protocol_mismatch`
-- `unsupported_message_type`
-- `message_too_large`
-- `busy`
-
-## Game State Sync
-
-Phase 3 adds product-level game detection for:
-
-- Euro Truck Simulator 2 as `ets2`
-- American Truck Simulator as `ats`
-
-Windows detects supported games independently of whether a mobile device is connected. The current state is stored centrally, updates the Windows UI, and is synchronized to Android over the existing WebSocket session.
-
-After a successful handshake the sequence is:
-
-1. Android sends `hello`
-2. Windows replies with `hello_ack`
-3. Windows immediately sends the current `game_state`
-
-Example:
-
-```json
-{
-  "type": "game_state",
-  "games": [
-    {
-      "game": "ets2",
-      "running": true
-    },
-    {
-      "game": "ats",
-      "running": false
-    }
-  ]
-}
-```
-
-Rules:
-
-- every `game_state` message includes both supported games
-- Android receives only product-level running state
-- process IDs, window handles, titles, and capture details stay on Windows only
-- Windows sends updated `game_state` only when the detected state actually changes
-
-## Manual Refresh
-
-Android may request a fresh snapshot with:
-
-```json
-{
-  "type": "game_state_request"
-}
-```
-
-Windows replies with the current `game_state`.
-
-Normal operation remains event-driven; `game_state_request` is only a manual recovery/check action.
+The current transport is cleartext `ws://` plus token-gated `http://` on the local LAN. It has no arbitrary file, shell, keyboard, or filesystem endpoint.

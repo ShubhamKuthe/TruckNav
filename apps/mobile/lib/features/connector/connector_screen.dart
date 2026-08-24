@@ -37,8 +37,8 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
           return;
         }
 
-        if (next == ConnectionStage.waitingForStream &&
-            previous != ConnectionStage.waitingForStream) {
+        if (next == ConnectionStage.waitingForNavigation &&
+            previous != ConnectionStage.waitingForNavigation) {
           context.go('/gps');
         }
       },
@@ -50,9 +50,13 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
     final theme = Theme.of(context);
     final runningGames = session.supportedGames.runningGames;
     final otherGames = TruckGame.values
-        .where((game) => game != TruckGame.none && !session.supportedGames.isRunning(game))
+        .where(
+          (game) =>
+              game != TruckGame.none && !session.supportedGames.isRunning(game),
+        )
         .toList(growable: false);
-    final selectedGameMissing = session.selectedGame != TruckGame.none &&
+    final selectedGameMissing =
+        session.selectedGame != TruckGame.none &&
         !session.supportedGames.isRunning(session.selectedGame);
 
     return Scaffold(
@@ -208,8 +212,9 @@ class _ConnectorScreenState extends ConsumerState<ConnectorScreen> {
                       const SizedBox(height: 8),
                       _StatusLine(
                         label: 'Automatically open running game',
-                        value:
-                            session.autoOpenRunningGame ? 'Enabled' : 'Disabled',
+                        value: session.autoOpenRunningGame
+                            ? 'Enabled'
+                            : 'Disabled',
                       ),
                     ],
                   ),
@@ -298,10 +303,7 @@ class _GameStatusCard extends StatelessWidget {
               color: accentColor.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(
-              Icons.sports_esports_rounded,
-              color: accentColor,
-            ),
+            child: Icon(Icons.sports_esports_rounded, color: accentColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -524,8 +526,8 @@ class _ReconnectOverlay extends StatelessWidget {
 
 String _stageLabel(ConnectionStage stage) => switch (stage) {
   ConnectionStage.gameSelection => 'Connected',
-  ConnectionStage.waitingForStream => 'Waiting for game state',
-  ConnectionStage.streaming => 'Streaming',
+  ConnectionStage.waitingForNavigation => 'Waiting for navigation',
+  ConnectionStage.navigating => 'Navigating',
   ConnectionStage.reconnecting => 'Reconnecting',
   ConnectionStage.versionMismatch => 'Update required',
   ConnectionStage.connectionFailed => 'Connection failed',

@@ -1,64 +1,65 @@
-# Testing
+# Testing TruckNav
 
-## Automated Windows Coverage
+## Automated Validation
 
-Run from the repository root:
+From the repository root:
 
 ```powershell
 dotnet build apps/windows/TruckNav.Connector.sln
 dotnet test apps/windows/TruckNav.Connector.sln
 pwsh ./scripts/build_windows.ps1
-```
 
-Phase 4 automated coverage includes:
-
-- crop normalization, projection, clamping, minimum size, and invalid-value rejection
-- selection movement/resizing within frame bounds
-- 100%, 125%, and 150% DPI conversion
-- WPF letterbox-to-frame coordinate mapping
-- material resolution-change threshold and stable-observation debounce
-- normalized crop preservation across source resolutions
-- independent ETS2/ATS profile persistence
-- malformed profile recovery and invalid profile rejection
-- known 16:9 Route Advisor preset and no-preset behavior
-- mock capture start/frame/stop lifecycle, game-close stop, and source replacement
-- latest-value frame buffering with a hard capacity of one
-
-Existing protocol, LAN integration, session, identity, mDNS, and Phase 3 game-detection tests remain enabled.
-
-## Flutter Regression Coverage
-
-From `apps/mobile` run:
-
-```powershell
+cd apps/mobile
 flutter analyze
 flutter test
-pwsh ../../scripts/build_android.ps1
+cd ../..
+pwsh ./scripts/build_android.ps1
 ```
 
-Phase 4 changes no Android video behavior. The existing Android waiting/placeholder surface and Phase 3 `game_state` synchronization must continue to pass.
+Windows coverage includes protocol/session/mDNS/game detection, map-token authorization, revision-12 MMF decoding, coordinates, heading, speed, limit, job/destination values, pickup-to-delivery target transitions, revision rejection, strict destination lookup, directed A*, no-route behavior, progress projection, and stable off-route rerouting. Flutter coverage includes native messages, pairing/session regressions, GPS controls, interpolation, visual tile decoding, a four-exit roundabout, divided interchange/ramp geometry, city/POI LOD data, route/map coordinate alignment, and pickup/delivery endpoint styling.
 
-## Real ETS2/ATS Acceptance
+Automated tests do not require a running simulator and do not prove a real SCS session.
 
-Automated tests use fake frames and do not prove that a particular simulator/GPU/display-mode combination can be captured. Verify the real flow manually:
+## First Real Setup
 
-1. Start TruckNav Connector and ETS2 or ATS.
-2. Confirm the Games page reports the simulator and its window as running.
-3. Open GPS Capture, choose the running game, and click Use This Game.
-4. Confirm the preview shows the actual simulator window, not generated artwork.
-5. Open the Route Advisor and drag/resize the amber box around only its map portion.
-6. Confirm all handles remain aligned at the current Windows scaling setting.
-7. Open Preview and confirm the crop contains exactly those real pixels.
-8. Switch Portrait/Landscape and Fill/Fit; confirm there is no stretching.
-9. Save and confirm Home and Games report that game as configured.
-10. Restart TruckNav Connector and the simulator; confirm the separate profile persists.
-11. Change the game resolution materially and confirm the stable warning offers Keep Current and Review GPS Area.
-12. Close the game during calibration and confirm the app preserves the unsaved rectangle and does not crash.
+1. Start TruckNav Connector.
+2. Open Games & Map Data.
+3. Confirm ETS2/ATS installation path and version. Use Choose Folder only if Steam discovery missed it.
+4. Click Install / Update Plugin. Close the game first.
+5. Build the Navigation Graph if it is missing/stale.
+6. On Navigation, click Build Map for the separate Visual Map if it is missing/stale.
+7. Start the game and accept the SCS SDK warning if shown.
+8. Restart the game once after first plugin installation.
+9. Confirm Navigation shows telemetry connected.
+10. Select a Freight Market job and confirm the source depot pickup route appears before attaching the trailer.
+11. Attach the trailer and confirm TruckNav automatically switches to the delivery destination.
+12. Pair HEN and open GPS.
 
-## Multi-Monitor, Alt-Tab, And Performance
+## Mandatory Route Advisor Off Test
 
-When a second display is available, place TruckNav and the game on different monitors, preferably with different scale factors. Confirm automatic window capture is independent of the WPF monitor. If automatic capture is unavailable, explicitly select the intended monitor and verify the crop still maps to physical capture pixels.
+1. Start Connector and ETS2/ATS.
+2. Confirm telemetry connected and take a delivery.
+3. Confirm the current destination appears on ROCK and the route appears on HEN.
+4. Hide/disable the in-game Route Advisor using the normal game control.
+5. Drive.
 
-While preview is open, cover and alt-tab away from the game, then return. A minimized source may stop delivering useful frames; this is a Windows Graphics Capture limitation. Confirm retry recovers after the game window returns.
+Expected: the route stays visible; the truck marker continues moving/rotating; speed, progress, and rerouting continue. TruckNav must not depend on Route Advisor pixels.
 
-Leave calibration open for several minutes and observe CPU, GPU, and memory. Preview should remain near 20 FPS, memory should stabilize, and there should be no growing delay because both native and WPF queues are bounded/latest-only.
+## Real Driving Checklist
+
+- **A - Straight movement:** marker advances smoothly.
+- **B - Turning:** marker/camera rotates without long-angle wrap.
+- **C - Follow TruckNav:** remaining progress moves forward.
+- **D - Miss a turn:** after stable deviation, HEN shows rerouting and receives a route from the current position.
+- **E - Follow a different game route:** TruckNav recalculates rather than forcing a missed edge forever.
+- **F - Stop:** marker stops; no simulated drift.
+- **G - Pause:** pose remains stable and route is not corrupted.
+- **H - Close game:** telemetry disconnects gracefully while ROCK/HEN remains paired.
+- **I - Restart game:** telemetry and active-job routing recover without restarting Connector.
+- **J - Route Advisor off:** navigation works normally.
+
+Record the game/version, source/destination, route calculation result, coordinate alignment, reroute timing, and any road-direction error. Do not report a manual acceptance item as passed unless it was observed in the game.
+
+## Local Data Validation On This Machine
+
+On August 24, 2026, production import, route planning, visual-map generation, and real gzip tile creation were exercised against installed ETS2 1.60.1.7 and ATS 1.60.1.8 data. Visual caches built in 3.6 s (ETS2, 15,038,498 bytes) and 3.1 s (ATS, 11,713,998 bytes). Release validation passed 65 Windows tests, 59 Flutter tests, and clean Flutter analysis. A real in-game roundabout/interchange appearance still requires driving those locations.

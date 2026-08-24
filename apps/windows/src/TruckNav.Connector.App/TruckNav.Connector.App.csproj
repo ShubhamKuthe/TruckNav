@@ -17,13 +17,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TruckNav.Connector.Core\TruckNav.Connector.Core.csproj" />
-    <ProjectReference Include="..\TruckNav.Connector.Capture\TruckNav.Connector.Capture.csproj" />
+    <ProjectReference Include="..\TruckNav.Connector.Navigation\TruckNav.Connector.Navigation.csproj" />
     <ProjectReference Include="..\TruckNav.Connector.Networking\TruckNav.Connector.Networking.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Assets\AppIcon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ThirdParty\TruckSimGpsTelemetry\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
 

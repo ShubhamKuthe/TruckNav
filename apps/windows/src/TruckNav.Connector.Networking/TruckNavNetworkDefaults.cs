@@ -11,6 +11,7 @@ public static class TruckNavNetworkDefaults
     public const string MdnsRegistrationType = "_trucknav._tcp";
     public const string IntentionalDisconnectReason = "intentional_disconnect";
 
-    public static readonly IReadOnlyList<string> EmptyCapabilities = Array.Empty<string>();
+    public static readonly IReadOnlyList<string> ConnectorCapabilities =
+        ["native_navigation", "scs_telemetry", "local_route_graph"];
     public static readonly TimeSpan WebSocketKeepAliveInterval = TimeSpan.FromSeconds(15);
 }

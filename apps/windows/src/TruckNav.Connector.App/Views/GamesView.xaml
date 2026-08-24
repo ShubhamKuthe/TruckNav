@@ -3,73 +3,98 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel>
-            <TextBlock Text="Games" Style="{StaticResource PageHeadingTextStyle}" />
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Games &amp; Map Data" Style="{StaticResource PageHeadingTextStyle}" />
+                    <TextBlock Margin="0,5,0,0"
+                               Text="Install verified SCS telemetry and generate routing graphs from your local game files."
+                               Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+                <Button HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Content="Refresh"
+                        Command="{Binding RefreshAllCommand}"
+                        Style="{StaticResource TruckNavButtonStyle}" />
+            </Grid>
 
             <ItemsControl Margin="0,16,0,0" ItemsSource="{Binding Games}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="0,0,0,12"
-                                Style="{StaticResource TruckNavCardStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Width="44"
-                                        Height="44"
-                                        Background="{StaticResource Surface3Brush}"
-                                        CornerRadius="12">
-                                    <TextBlock Text="&#xE7FC;"
-                                               FontFamily="Segoe MDL2 Assets"
-                                               FontSize="20"
-                                               Foreground="{Binding RunningTone, Converter={StaticResource StatusToneToBrushConverter}}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" Margin="14,0,0,0">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource CardValueTextStyle}" FontSize="14.5" />
-                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <Ellipse Width="6"
-                                                 Height="6"
-                                                 VerticalAlignment="Center"
-                                                 Fill="{Binding RunningTone, Converter={StaticResource StatusToneToBrushConverter}}" />
-                                        <TextBlock Margin="6,0,0,0"
-                                                   Text="{Binding RunningLabel}"
-                                                   Style="{StaticResource CaptionTextStyle}"
-                                                   Foreground="{Binding RunningTone, Converter={StaticResource StatusToneToBrushConverter}}" />
+                        <Border Margin="0,0,0,12" Style="{StaticResource TruckNavCardStyle}">
+                            <StackPanel>
+                                <Grid>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource CardValueTextStyle}" FontSize="15" />
+                                        <TextBlock Margin="0,5,0,0" Text="{Binding InstallDetails}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
                                     </StackPanel>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="2" Margin="14,0,0,0" MaxWidth="160">
-                                    <TextBlock Text="{Binding ConfigurationLabel}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
-                                                <Setter Property="FontWeight" Value="SemiBold" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsConfigured}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Margin="0,4,0,0"
-                                               Text="{Binding Detail}"
-                                               Style="{StaticResource CaptionTextStyle}" />
-                                    <Button Margin="0,8,0,0"
-                                            Content="{Binding ActionText}"
-                                            Command="{Binding ActionCommand}"
-                                            IsEnabled="{Binding IsActionEnabled}"
+                                    <Button HorizontalAlignment="Right"
+                                            VerticalAlignment="Bottom"
+                                            Margin="0,28,0,0"
+                                            Content="Choose Folder"
+                                            Command="{Binding SelectGameFolderCommand}"
                                             Style="{StaticResource TruckNavButtonStyle}" />
-                                </StackPanel>
-                            </Grid>
+                                    <Border HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Padding="9,4"
+                                            Background="{StaticResource Surface3Brush}"
+                                            CornerRadius="99">
+                                        <TextBlock Text="{Binding IsInstalled, StringFormat=Installed: {0}}" Style="{StaticResource MonoCaptionTextStyle}" />
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,15,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Padding="13"
+                                            Background="{StaticResource Surface2Brush}"
+                                            BorderBrush="{Binding PluginTone, Converter={StaticResource StatusToneToBrushConverter}, ConverterParameter=Background}"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
+                                        <StackPanel>
+                                            <TextBlock Text="SCS TELEMETRY PLUGIN" Style="{StaticResource SectionLabelTextStyle}" />
+                                            <TextBlock Margin="0,7,0,0" Text="{Binding PluginStatus}" Style="{StaticResource CaptionTextStyle}" />
+                                            <Button Margin="0,11,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    Content="Install / Update Plugin"
+                                                    Command="{Binding InstallPluginCommand}"
+                                                    Style="{StaticResource TruckNavButtonStyle}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2"
+                                            Padding="13"
+                                            Background="{StaticResource Surface2Brush}"
+                                            BorderBrush="{Binding NavigationDataTone, Converter={StaticResource StatusToneToBrushConverter}, ConverterParameter=Background}"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
+                                        <StackPanel>
+                                            <TextBlock Text="LOCAL NAVIGATION GRAPH" Style="{StaticResource SectionLabelTextStyle}" />
+                                            <TextBlock Margin="0,7,0,0" Text="{Binding NavigationDataStatus}" Style="{StaticResource CaptionTextStyle}" />
+                                            <Button Margin="0,11,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    Content="Build Local Map Data"
+                                                    Command="{Binding BuildNavigationDataCommand}"
+                                                    Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock Margin="0,10,0,0"
+                                           Text="{Binding OperationMessage}"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <TextBlock Margin="2,0,2,6"
+                       Text="Generation runs locally through the separately installed truckermudgeon/maps tool. No map files or telemetry are uploaded."
+                       Style="{StaticResource CaptionTextStyle}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

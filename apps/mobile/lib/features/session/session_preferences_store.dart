@@ -70,7 +70,8 @@ class SharedPreferencesSessionPreferencesStore
       deviceName: storedDeviceName?.trim().isNotEmpty == true
           ? storedDeviceName!.trim()
           : _defaultDeviceName,
-      isFirstLaunch: storedDeviceName == null || storedDeviceName.trim().isEmpty,
+      isFirstLaunch:
+          storedDeviceName == null || storedDeviceName.trim().isEmpty,
       autoReconnect: preferences.getBool(_autoReconnectKey) ?? true,
       autoOpenRunningGame:
           preferences.getBool(_autoOpenRunningGameKey) ?? false,

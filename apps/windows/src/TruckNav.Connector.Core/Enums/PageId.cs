@@ -6,7 +6,7 @@ public enum PageId
     Home,
     Devices,
     Games,
-    GpsCapture,
+    Navigation,
     Settings,
     Diagnostics
 }

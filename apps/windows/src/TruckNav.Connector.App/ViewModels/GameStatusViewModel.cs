@@ -1,31 +1,162 @@
-using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
+using TruckNav.Connector.Core.Enums;
+using TruckNav.Connector.Core.Interfaces;
+using TruckNav.Connector.Core.Utilities;
 
 namespace TruckNav.Connector.App.ViewModels;
 
-public sealed class GameStatusViewModel
+public sealed partial class GameStatusViewModel : ObservableObject
 {
-    public required string Name { get; init; }
+    private readonly IGameInstallationLocator _installationLocator;
+    private readonly ITelemetryPluginInstaller _pluginInstaller;
+    private readonly INavigationDataBuilder _dataBuilder;
 
-    public bool IsRunning { get; init; }
+    public GameStatusViewModel(
+        GameType gameType,
+        IGameInstallationLocator installationLocator,
+        ITelemetryPluginInstaller pluginInstaller,
+        INavigationDataBuilder dataBuilder)
+    {
+        GameType = gameType;
+        Name = SupportedGameCatalog.GetDisplayName(gameType);
+        _installationLocator = installationLocator;
+        _pluginInstaller = pluginInstaller;
+        _dataBuilder = dataBuilder;
 
-    public bool IsConfigured { get; init; }
+        InstallPluginCommand = new AsyncRelayCommand(InstallPluginAsync, () => IsInstalled && !IsBusy);
+        BuildNavigationDataCommand = new AsyncRelayCommand(BuildNavigationDataAsync, () => IsInstalled && !IsBusy);
+        RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => !IsBusy);
+        SelectGameFolderCommand = new AsyncRelayCommand(SelectGameFolderAsync, () => !IsBusy);
+    }
 
-    public string ActionText { get; init; } = "Configure GPS";
+    public GameType GameType { get; }
 
-    public bool IsActionEnabled { get; init; }
+    public string Name { get; }
 
-    public ICommand? ActionCommand { get; init; }
+    public IAsyncRelayCommand InstallPluginCommand { get; }
 
-    public string RunningLabel => IsRunning ? "Running" : "Not running";
+    public IAsyncRelayCommand BuildNavigationDataCommand { get; }
 
-    public string ConfigurationLabel => IsConfigured ? "Configured" : "Not configured";
+    public IAsyncRelayCommand RefreshCommand { get; }
 
-    public StatusTone RunningTone => IsRunning ? StatusTone.Success : StatusTone.Neutral;
+    public IAsyncRelayCommand SelectGameFolderCommand { get; }
 
-    public StatusTone ConfigurationTone => IsConfigured ? StatusTone.Success : StatusTone.Neutral;
+    [ObservableProperty]
+    private bool isInstalled;
 
-    public string Detail =>
-        IsRunning
-            ? "Ready to configure the GPS area for this game."
-            : $"Start {Name} to configure its GPS area.";
+    [ObservableProperty]
+    private bool isBusy;
+
+    [ObservableProperty]
+    private string installDetails = "Detecting Steam installation...";
+
+    [ObservableProperty]
+    private string pluginStatus = "Checking telemetry plugin...";
+
+    [ObservableProperty]
+    private string navigationDataStatus = "Checking local graph...";
+
+    [ObservableProperty]
+    private string operationMessage = string.Empty;
+
+    [ObservableProperty]
+    private StatusTone pluginTone = StatusTone.Neutral;
+
+    [ObservableProperty]
+    private StatusTone navigationDataTone = StatusTone.Neutral;
+
+    public async Task RefreshAsync()
+    {
+        SetBusy(true);
+        try
+        {
+            var installation = await Task.Run(() =>
+                _installationLocator.FindInstallations().FirstOrDefault(value => value.Game == GameType));
+            IsInstalled = installation is not null;
+            InstallDetails = installation is null
+                ? "Not found in Steam libraries. Configure a manual path in %LOCALAPPDATA%\\TruckNav\\game-paths.json."
+                : $"{installation.Version}  |  {installation.InstallPath}";
+
+            var plugin = await Task.Run(() => _pluginInstaller.GetStatus(GameType));
+            PluginStatus = plugin.Message;
+            PluginTone = plugin.PluginCurrent
+                ? StatusTone.Success
+                : plugin.GameInstalled
+                    ? StatusTone.Warning
+                    : StatusTone.Neutral;
+
+            var data = await _dataBuilder.GetStatusAsync(GameType);
+            NavigationDataStatus = data.IsReady
+                ? $"Ready: {data.NodeCount:N0} nodes, {data.EdgeCount:N0} edges. {data.Message}"
+                : data.Message;
+            NavigationDataTone = data.IsReady ? StatusTone.Success : IsInstalled ? StatusTone.Warning : StatusTone.Neutral;
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    private async Task InstallPluginAsync()
+    {
+        SetBusy(true);
+        OperationMessage = "Installing the verified telemetry plugin...";
+        try
+        {
+            var result = await _pluginInstaller.InstallAsync(GameType);
+            OperationMessage = result.Message;
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+
+        await RefreshAsync();
+    }
+
+    private async Task BuildNavigationDataAsync()
+    {
+        SetBusy(true);
+        OperationMessage = "Generating navigation data locally. This can take several minutes...";
+        try
+        {
+            var result = await _dataBuilder.BuildAsync(GameType);
+            OperationMessage = result.Message;
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+
+        await RefreshAsync();
+    }
+
+    private async Task SelectGameFolderAsync()
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = $"Select the {Name} installation folder",
+            Multiselect = false
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        OperationMessage = _installationLocator.TrySetManualPath(GameType, dialog.FolderName, out var error)
+            ? "Manual game folder saved."
+            : error;
+        await RefreshAsync();
+    }
+
+    private void SetBusy(bool value)
+    {
+        IsBusy = value;
+        InstallPluginCommand.NotifyCanExecuteChanged();
+        BuildNavigationDataCommand.NotifyCanExecuteChanged();
+        RefreshCommand.NotifyCanExecuteChanged();
+        SelectGameFolderCommand.NotifyCanExecuteChanged();
+    }
 }

@@ -18,7 +18,7 @@ public sealed partial class MainViewModel : ObservableObject
         FirstTimeSetupViewModel firstTimeSetup,
         DevicesViewModel devices,
         GamesViewModel games,
-        GpsCaptureViewModel gpsCapture,
+        NavigationViewModel navigation,
         SettingsViewModel settings,
         DiagnosticsViewModel diagnostics,
         IConnectorSessionStore sessionStore,
@@ -32,7 +32,7 @@ public sealed partial class MainViewModel : ObservableObject
             [PageId.FirstTimeSetup] = firstTimeSetup,
             [PageId.Devices] = devices,
             [PageId.Games] = games,
-            [PageId.GpsCapture] = gpsCapture,
+            [PageId.Navigation] = navigation,
             [PageId.Settings] = settings,
             [PageId.Diagnostics] = diagnostics
         };
@@ -42,7 +42,7 @@ public sealed partial class MainViewModel : ObservableObject
             new(PageId.Home, "Home", "\uE80F"),
             new(PageId.Devices, "Devices", "\uE7F4"),
             new(PageId.Games, "Games", "\uE7FC"),
-            new(PageId.GpsCapture, "GPS Capture", "\uE707"),
+            new(PageId.Navigation, "Navigation", "\uE707"),
             new(PageId.Settings, "Settings", "\uE713")
         };
 

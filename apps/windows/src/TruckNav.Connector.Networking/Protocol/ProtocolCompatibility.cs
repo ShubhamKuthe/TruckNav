@@ -2,7 +2,7 @@ namespace TruckNav.Connector.Networking.Protocol;
 
 public static class ProtocolCompatibility
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public static bool IsCompatible(int remoteVersion) => remoteVersion == CurrentVersion;
 

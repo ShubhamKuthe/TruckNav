@@ -105,7 +105,7 @@ public sealed class ConnectorProtocolHandler : IProtocolHandler
         return ProtocolValidationResult.Success();
     }
 
-    public HelloAckMessage CreateHelloAck() =>
+    public HelloAckMessage CreateHelloAck(string mapAccessToken) =>
         new(
             _localIdentity.ProtocolVersion,
             _localIdentity.AppVersion,
@@ -113,7 +113,8 @@ public sealed class ConnectorProtocolHandler : IProtocolHandler
             _localIdentity.DeviceName,
             _localIdentity.Role,
             _localIdentity.Platform,
-            _localIdentity.Capabilities);
+            _localIdentity.Capabilities,
+            mapAccessToken);
 
     public ErrorMessage CreateError(string code, string message) => new(code, message);
 

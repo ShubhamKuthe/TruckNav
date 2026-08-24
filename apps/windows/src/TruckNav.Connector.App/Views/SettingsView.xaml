@@ -123,7 +123,7 @@
             </Border>
 
             <TextBlock Margin="0,18,0,6"
-                       Text="STREAMING"
+                       Text="NAVIGATION"
                        Style="{StaticResource SectionLabelTextStyle}" />
             <Border Style="{StaticResource TruckNavCardStyle}">
                 <StackPanel>
@@ -132,9 +132,9 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Start streaming automatically" Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Start native navigation automatically" Style="{StaticResource BodyTextStyle}" />
                         <ToggleButton Grid.Column="1"
-                                      IsChecked="{Binding StartStreamingAutomatically, Mode=TwoWay}"
+                                      IsChecked="{Binding StartNavigationAutomatically, Mode=TwoWay}"
                                       Style="{StaticResource TruckNavToggleStyle}" />
                     </Grid>
                     <Grid>
@@ -142,9 +142,9 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Hardware acceleration" Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Route rendering acceleration" Style="{StaticResource BodyTextStyle}" />
                         <ToggleButton Grid.Column="1"
-                                      IsChecked="{Binding HardwareAcceleration, Mode=TwoWay}"
+                                      IsChecked="{Binding RouteRenderingAcceleration, Mode=TwoWay}"
                                       Style="{StaticResource TruckNavToggleStyle}" />
                     </Grid>
                 </StackPanel>
@@ -180,9 +180,9 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Show streaming notifications" Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Show navigation notifications" Style="{StaticResource BodyTextStyle}" />
                         <ToggleButton Grid.Column="1"
-                                      IsChecked="{Binding ShowStreamingNotifications, Mode=TwoWay}"
+                                      IsChecked="{Binding ShowNavigationNotifications, Mode=TwoWay}"
                                       Style="{StaticResource TruckNavToggleStyle}" />
                     </Grid>
                 </StackPanel>

@@ -5,6 +5,8 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using TruckNav.Connector.Core.Enums;
+using TruckNav.Connector.Core.Interfaces;
+using TruckNav.Connector.Core.Models;
 using TruckNav.Connector.Networking;
 using TruckNav.Connector.Networking.Discovery;
 using TruckNav.Connector.Networking.Hosting;
@@ -14,6 +16,7 @@ using TruckNav.Connector.Networking.Protocol;
 using TruckNav.Connector.Networking.Protocol.Messages;
 using TruckNav.Connector.Networking.Session;
 using TruckNav.Connector.Networking.Storage;
+using TruckNav.Connector.Navigation.State;
 
 namespace TruckNav.Connector.Tests;
 
@@ -46,8 +49,27 @@ public sealed class ConnectorServerIntegrationTests
 
         Assert.NotNull(payload);
         Assert.Equal("ROCK", payload!.DeviceName);
-        Assert.Equal(1, payload.ProtocolVersion);
+        Assert.Equal(ProtocolCompatibility.CurrentVersion, payload.ProtocolVersion);
         Assert.Equal(TruckNavNetworkDefaults.ConnectorRole, payload.Role);
+    }
+
+    [Fact]
+    public async Task MapEndpoints_ShouldRequireActiveHandshakeToken()
+    {
+        await using var context = await TestServerContext.StartAsync();
+        using var httpClient = new HttpClient { BaseAddress = context.Server.ServiceUri };
+
+        var unauthorized = await httpClient.GetAsync("/map/ets2/manifest");
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
+
+        using var socket = await context.ConnectWebSocketAsync();
+        await SendTextAsync(socket, BuildHelloJson());
+        var helloAck = ProtocolSerializer.Deserialize<HelloAckMessage>(await ReceiveTextAsync(socket));
+        Assert.Equal(64, helloAck.MapAccessToken.Length);
+
+        httpClient.DefaultRequestHeaders.Add("X-TruckNav-Map-Token", helloAck.MapAccessToken);
+        var authorized = await httpClient.GetAsync("/map/ets2/manifest");
+        Assert.Equal(HttpStatusCode.OK, authorized.StatusCode);
     }
 
     [Fact]
@@ -64,6 +86,8 @@ public sealed class ConnectorServerIntegrationTests
 
         var gameState = ProtocolSerializer.Deserialize<GameStateMessage>(await ReceiveTextAsync(socket));
         AssertGameState(gameState, ets2Running: false, atsRunning: false);
+        _ = ProtocolSerializer.Deserialize<TelemetryStateMessage>(await ReceiveTextAsync(socket));
+        _ = ProtocolSerializer.Deserialize<RouteStateMessage>(await ReceiveTextAsync(socket));
 
         await SendTextAsync(socket, ProtocolSerializer.Serialize(new PingMessage()));
         var pongPayload = await ReceiveTextAsync(socket);
@@ -95,7 +119,7 @@ public sealed class ConnectorServerIntegrationTests
             """
             {
               "type": "hello",
-              "protocolVersion": 1,
+              "protocolVersion": 2,
               "appVersion": "0.1.0",
               "deviceId": "",
               "deviceName": "",
@@ -193,6 +217,8 @@ public sealed class ConnectorServerIntegrationTests
         await SendTextAsync(socket, BuildHelloJson());
         _ = await ReceiveTextAsync(socket);
         _ = await ReceiveTextAsync(socket);
+        _ = await ReceiveTextAsync(socket);
+        _ = await ReceiveTextAsync(socket);
 
         context.SessionStore.UpdateGameDetection(CreateGameDetectionSnapshot(GameType.AmericanTruckSimulator));
 
@@ -207,6 +233,8 @@ public sealed class ConnectorServerIntegrationTests
         using var socket = await context.ConnectWebSocketAsync();
 
         await SendTextAsync(socket, BuildHelloJson());
+        _ = await ReceiveTextAsync(socket);
+        _ = await ReceiveTextAsync(socket);
         _ = await ReceiveTextAsync(socket);
         _ = await ReceiveTextAsync(socket);
 
@@ -232,7 +260,7 @@ public sealed class ConnectorServerIntegrationTests
     }
 
     private static string BuildHelloJson(
-        int protocolVersion = 1,
+        int protocolVersion = ProtocolCompatibility.CurrentVersion,
         string? deviceId = null,
         string deviceName = "HEN") =>
         JsonSerializer.Serialize(new
@@ -362,10 +390,13 @@ public sealed class ConnectorServerIntegrationTests
             var sessionStore = new ConnectorSessionStore(identityProvider);
             var protocolHandler = new ConnectorProtocolHandler(identityProvider);
             var advertiser = new NoOpDiscoveryAdvertiser();
+            var navigationStateStore = new NavigationStateStore();
             var server = new ConnectorServerHostedService(
                 identityProvider,
                 protocolHandler,
                 sessionStore,
+                navigationStateStore,
+                new EmptyVisualMapService(),
                 advertiser,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectorServerHostedService>.Instance);
 
@@ -407,5 +438,44 @@ public sealed class ConnectorServerIntegrationTests
             Task.CompletedTask;
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class EmptyVisualMapService : IVisualMapService
+    {
+        public event EventHandler<VisualMapBuildProgress>? BuildProgressChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public Task<VisualMapStatus> BuildAsync(GameType game, CancellationToken cancellationToken = default) =>
+            Task.FromResult(CreateStatus(game));
+
+        public Task<VisualMapStatus> GetStatusAsync(GameType game, CancellationToken cancellationToken = default) =>
+            Task.FromResult(CreateStatus(game));
+
+        public Task<VisualMapManifest?> GetManifestAsync(GameType game, CancellationToken cancellationToken = default) =>
+            Task.FromResult<VisualMapManifest?>(new VisualMapManifest(
+                game,
+                "1.0",
+                "test",
+                DateTimeOffset.UnixEpoch,
+                "test",
+                -100,
+                -100,
+                100,
+                100,
+                [new VisualMapLevel(0, 1_000, "overview")]));
+
+        public Task<VisualMapTile?> GetTileAsync(
+            GameType game,
+            int level,
+            int tileX,
+            int tileY,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<VisualMapTile?>(null);
+
+        private static VisualMapStatus CreateStatus(GameType game) => new(
+            game, false, false, string.Empty, null, "test", 0, 0, 0, 0, 0, 0, 0, null, "Map unavailable");
     }
 }

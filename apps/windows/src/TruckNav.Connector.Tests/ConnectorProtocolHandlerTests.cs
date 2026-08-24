@@ -22,7 +22,7 @@ public sealed class ConnectorProtocolHandlerTests : IDisposable
     {
         var handler = CreateProtocolHandler();
         var hello = new TruckNav.Connector.Networking.Protocol.Messages.HelloMessage(
-            ProtocolVersion: 1,
+            ProtocolVersion: ProtocolCompatibility.CurrentVersion,
             AppVersion: "0.1.0",
             DeviceId: Guid.NewGuid().ToString("D"),
             DeviceName: "",
@@ -60,7 +60,7 @@ public sealed class ConnectorProtocolHandlerTests : IDisposable
     {
         var handler = CreateProtocolHandler();
         var hello = new TruckNav.Connector.Networking.Protocol.Messages.HelloMessage(
-            ProtocolVersion: 1,
+            ProtocolVersion: ProtocolCompatibility.CurrentVersion,
             AppVersion: "0.1.0",
             DeviceId: Guid.NewGuid().ToString("D"),
             DeviceName: "HEN",

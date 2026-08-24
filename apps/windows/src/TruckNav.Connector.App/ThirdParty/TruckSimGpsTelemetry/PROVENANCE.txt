@@ -1,0 +1,13 @@
+TruckNav Connector bundled telemetry plugin
+
+Project: TruckSim-GPS/trucksim-gps-plugin
+Source: https://github.com/TruckSim-GPS/trucksim-gps-plugin
+Pinned commit: c5686cb41b36d0978dabcce24f730bbc1bf0b4bf
+License: MIT (see LICENSE)
+Build: Release x64, Visual Studio 2022 v143 toolset
+Binary: trucksim-gps-telemetry.dll
+SHA-256: 4902D3F367F999CD4FC83502794DF651C6719BCC393875472F5259E52BDDBB52
+
+The binary was built locally from the pinned upstream source. TruckNav's
+navigation and routing implementation is independent and does not include code
+from the GPL-licensed map-generation projects used as optional external tools.

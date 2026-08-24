@@ -81,7 +81,7 @@ public sealed class FileConnectorIdentityProvider : IConnectorIdentityProvider
             deviceName,
             TruckNavNetworkDefaults.ConnectorRole,
             TruckNavNetworkDefaults.WindowsPlatform,
-            TruckNavNetworkDefaults.EmptyCapabilities);
+            TruckNavNetworkDefaults.ConnectorCapabilities);
 
     private sealed record PersistedConnectorIdentity(string DeviceId, string DeviceName);
 }

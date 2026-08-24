@@ -65,10 +65,10 @@ public sealed partial class SettingsViewModel : PageViewModelBase
     private bool rememberPreviousDevices;
 
     [ObservableProperty]
-    private bool startStreamingAutomatically;
+    private bool startNavigationAutomatically;
 
     [ObservableProperty]
-    private bool hardwareAcceleration;
+    private bool routeRenderingAcceleration;
 
     [ObservableProperty]
     private bool showConnectionNotifications;
@@ -77,7 +77,7 @@ public sealed partial class SettingsViewModel : PageViewModelBase
     private bool showGameDetectionNotifications;
 
     [ObservableProperty]
-    private bool showStreamingNotifications;
+    private bool showNavigationNotifications;
 
     public bool CanSavePcName =>
         !string.IsNullOrWhiteSpace(EditablePcName) &&
@@ -101,11 +101,11 @@ public sealed partial class SettingsViewModel : PageViewModelBase
     partial void OnCloseButtonMinimizesToTrayChanged(bool value) => PersistState();
     partial void OnAllowAutomaticReconnectChanged(bool value) => PersistState();
     partial void OnRememberPreviousDevicesChanged(bool value) => PersistState();
-    partial void OnStartStreamingAutomaticallyChanged(bool value) => PersistState();
-    partial void OnHardwareAccelerationChanged(bool value) => PersistState();
+    partial void OnStartNavigationAutomaticallyChanged(bool value) => PersistState();
+    partial void OnRouteRenderingAccelerationChanged(bool value) => PersistState();
     partial void OnShowConnectionNotificationsChanged(bool value) => PersistState();
     partial void OnShowGameDetectionNotificationsChanged(bool value) => PersistState();
-    partial void OnShowStreamingNotificationsChanged(bool value) => PersistState();
+    partial void OnShowNavigationNotificationsChanged(bool value) => PersistState();
 
     private void ApplyState(ConnectorUiState state)
     {
@@ -115,11 +115,11 @@ public sealed partial class SettingsViewModel : PageViewModelBase
         CloseButtonMinimizesToTray = state.CloseButtonMinimizesToTray;
         AllowAutomaticReconnect = state.AllowAutomaticReconnect;
         RememberPreviousDevices = state.RememberPreviousDevices;
-        StartStreamingAutomatically = state.StartStreamingAutomatically;
-        HardwareAcceleration = state.HardwareAcceleration;
+        StartNavigationAutomatically = state.StartNavigationAutomatically;
+        RouteRenderingAcceleration = state.RouteRenderingAcceleration;
         ShowConnectionNotifications = state.ShowConnectionNotifications;
         ShowGameDetectionNotifications = state.ShowGameDetectionNotifications;
-        ShowStreamingNotifications = state.ShowStreamingNotifications;
+        ShowNavigationNotifications = state.ShowNavigationNotifications;
     }
 
     private void PersistState()
@@ -137,11 +137,11 @@ public sealed partial class SettingsViewModel : PageViewModelBase
             CloseButtonMinimizesToTray = CloseButtonMinimizesToTray,
             AllowAutomaticReconnect = AllowAutomaticReconnect,
             RememberPreviousDevices = RememberPreviousDevices,
-            StartStreamingAutomatically = StartStreamingAutomatically,
-            HardwareAcceleration = HardwareAcceleration,
+            StartNavigationAutomatically = StartNavigationAutomatically,
+            RouteRenderingAcceleration = RouteRenderingAcceleration,
             ShowConnectionNotifications = ShowConnectionNotifications,
             ShowGameDetectionNotifications = ShowGameDetectionNotifications,
-            ShowStreamingNotifications = ShowStreamingNotifications
+            ShowNavigationNotifications = ShowNavigationNotifications
         });
     }
 

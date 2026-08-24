@@ -8,9 +8,17 @@ sealed class ConnectorConnectResult {
 }
 
 class ConnectorConnectSuccess extends ConnectorConnectResult {
-  const ConnectorConnectSuccess(this.peerIdentity);
+  const ConnectorConnectSuccess(
+    this.peerIdentity, [
+    this.visualMapConnection = const VisualMapConnection(
+      host: '',
+      port: 0,
+      accessToken: '',
+    ),
+  ]);
 
   final PeerIdentity peerIdentity;
+  final VisualMapConnection visualMapConnection;
 }
 
 class ConnectorConnectVersionMismatch extends ConnectorConnectResult {
@@ -36,10 +44,7 @@ sealed class ConnectorClientEvent {
 }
 
 class ConnectorClientDisconnected extends ConnectorClientEvent {
-  const ConnectorClientDisconnected({
-    required this.intentional,
-    this.reason,
-  });
+  const ConnectorClientDisconnected({required this.intentional, this.reason});
 
   final bool intentional;
   final String? reason;
@@ -55,6 +60,24 @@ class ConnectorClientGameStateUpdated extends ConnectorClientEvent {
   const ConnectorClientGameStateUpdated(this.gameState);
 
   final SupportedGameState gameState;
+}
+
+class ConnectorClientTelemetryUpdated extends ConnectorClientEvent {
+  const ConnectorClientTelemetryUpdated(this.telemetry);
+
+  final NativeTelemetryState telemetry;
+}
+
+class ConnectorClientRouteUpdated extends ConnectorClientEvent {
+  const ConnectorClientRouteUpdated(this.route);
+
+  final NativeRouteState route;
+}
+
+class ConnectorClientRouteProgressUpdated extends ConnectorClientEvent {
+  const ConnectorClientRouteProgressUpdated(this.progress);
+
+  final NativeRouteProgress progress;
 }
 
 abstract interface class ConnectorClient {

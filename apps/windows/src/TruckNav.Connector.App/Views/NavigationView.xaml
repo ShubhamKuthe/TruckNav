@@ -1,0 +1,122 @@
+<UserControl x:Class="TruckNav.Connector.App.Views.NavigationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Native Navigation" Style="{StaticResource PageHeadingTextStyle}" />
+                    <TextBlock Margin="0,5,0,0"
+                               Text="Native routing plus a separate detailed installed-game visual map"
+                               Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+                <Border HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Padding="12,6"
+                        Background="{Binding StatusTone, Converter={StaticResource StatusToneToBrushConverter}, ConverterParameter=Background}"
+                        BorderBrush="{Binding StatusTone, Converter={StaticResource StatusToneToBrushConverter}}"
+                        BorderThickness="1"
+                        CornerRadius="99">
+                    <TextBlock Text="{Binding Status}"
+                               Foreground="{Binding StatusTone, Converter={StaticResource StatusToneToBrushConverter}}"
+                               Style="{StaticResource MonoCaptionTextStyle}" />
+                </Border>
+            </Grid>
+
+            <Border Margin="0,18,0,0" Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="MAP DATA" Style="{StaticResource CardTitleTextStyle}" />
+                            <TextBlock Margin="0,5,0,0"
+                                       Text="Routing graph drives A*. Visual map drives only HEN rendering."
+                                       Style="{StaticResource CaptionTextStyle}" />
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Content="Refresh"
+                                Command="{Binding RefreshMapDataCommand}"
+                                Style="{StaticResource TruckNavButtonStyle}" />
+                    </Grid>
+
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Padding="14" Background="#181C1E" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                            <StackPanel>
+                                <TextBlock Text="Euro Truck Simulator 2" Style="{StaticResource CardValueTextStyle}" />
+                                <TextBlock Margin="0,12,0,0" Text="Navigation Graph" Style="{StaticResource CardTitleTextStyle}" />
+                                <TextBlock Margin="0,4,0,0" Text="{Binding Ets2NavigationGraph}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                                <TextBlock Margin="0,12,0,0" Text="Visual Map" Style="{StaticResource CardTitleTextStyle}" />
+                                <TextBlock Margin="0,4,0,0" Text="{Binding Ets2VisualMap}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                                <Button Margin="0,14,0,0" HorizontalAlignment="Left" Content="{Binding Ets2MapAction}" Command="{Binding BuildEts2MapCommand}" Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Padding="14" Background="#181C1E" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                            <StackPanel>
+                                <TextBlock Text="American Truck Simulator" Style="{StaticResource CardValueTextStyle}" />
+                                <TextBlock Margin="0,12,0,0" Text="Navigation Graph" Style="{StaticResource CardTitleTextStyle}" />
+                                <TextBlock Margin="0,4,0,0" Text="{Binding AtsNavigationGraph}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                                <TextBlock Margin="0,12,0,0" Text="Visual Map" Style="{StaticResource CardTitleTextStyle}" />
+                                <TextBlock Margin="0,4,0,0" Text="{Binding AtsVisualMap}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                                <Button Margin="0,14,0,0" HorizontalAlignment="Left" Content="{Binding AtsMapAction}" Command="{Binding BuildAtsMapCommand}" Style="{StaticResource TruckNavPrimaryButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <StackPanel Margin="0,14,0,0" Visibility="{Binding IsVisualMapBuildRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <ProgressBar Height="5" Minimum="0" Maximum="100" Value="{Binding VisualMapBuildPercent}" />
+                        <TextBlock Margin="0,7,0,0" Text="{Binding VisualMapBuildStage}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="0,12,0,0" Style="{StaticResource TruckNavCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Live pipeline" Style="{StaticResource CardTitleTextStyle}" />
+                    <TextBlock Margin="0,8,0,0" Text="{Binding StatusMessage}" Style="{StaticResource CardValueTextStyle}" />
+                    <TextBlock Margin="0,12,0,0" Text="{Binding Game}" Style="{StaticResource MonoValueTextStyle}" />
+                    <TextBlock Margin="0,6,0,0" Text="{Binding Telemetry}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource TruckNavCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Destination" Style="{StaticResource CardTitleTextStyle}" />
+                        <TextBlock Margin="0,9,0,0" Text="{Binding Destination}" Style="{StaticResource CardValueTextStyle}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,14,0,0" Text="Route" Style="{StaticResource CardTitleTextStyle}" />
+                        <TextBlock Margin="0,7,0,0" Text="{Binding Route}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,5,0,0" Text="{Binding RouteMetadata}" Style="{StaticResource CaptionTextStyle}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource TruckNavCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Next maneuver" Style="{StaticResource CardTitleTextStyle}" />
+                        <TextBlock Margin="0,9,0,0" Text="{Binding NextManeuver}" Style="{StaticResource CardValueTextStyle}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,14,0,0" Text="Progress" Style="{StaticResource CardTitleTextStyle}" />
+                        <TextBlock Margin="0,7,0,0" Text="{Binding Progress}" Style="{StaticResource MonoCaptionTextStyle}" TextWrapping="Wrap" />
+                        <Border Margin="0,12,0,0"
+                                Padding="10,6"
+                                HorizontalAlignment="Left"
+                                Background="#26F59E32"
+                                BorderBrush="{StaticResource AccentBrush}"
+                                BorderThickness="1"
+                                CornerRadius="99"
+                                Visibility="{Binding IsOffRoute, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="Off route - reroute guard active" Foreground="{StaticResource AccentBrush}" Style="{StaticResource MonoCaptionTextStyle}" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

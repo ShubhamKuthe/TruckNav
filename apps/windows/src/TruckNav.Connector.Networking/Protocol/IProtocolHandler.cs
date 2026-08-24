@@ -10,7 +10,7 @@ public interface IProtocolHandler
 
     ProtocolValidationResult ValidateHello(HelloMessage message);
 
-    HelloAckMessage CreateHelloAck();
+    HelloAckMessage CreateHelloAck(string mapAccessToken);
 
     ErrorMessage CreateError(string code, string message);
 
